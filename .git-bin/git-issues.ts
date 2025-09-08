@@ -45,7 +45,8 @@ async function* grepFiles(root: string, tags: string[]) {
   const files = new TextDecoder()
     .decode(result.stdout)
     .split("\0")
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((f) => !f.startsWith(".git/") && !f.startsWith(".git-bin/"));
 
   for (const file of files) {
     const content = await Deno.readTextFile(`${root}/${file}`);

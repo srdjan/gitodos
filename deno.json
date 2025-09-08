@@ -6,7 +6,9 @@
     "test": "deno test",
     "issues:scan": ".git-bin/git-issues.ts",
     "issues:scan:src": ".git-bin/git-issues.ts --path src --tag TODO,BUG --out .git-bin/.bugs",
-    "issues:hook:install": "sh -c 'printf \"%s\\n\" \"#!/bin/sh\" \".git-bin/git-issues.ts --out .git-bin/.issues\" \".git-bin/git-issues.ts --path src --tag TODO,BUG --out .git-bin/.bugs\" > .git/hooks/post-commit && chmod +x .git/hooks/post-commit'"
+    "issues:hook:install": "sh -c 'printf \"%s\\n\" \"#!/bin/sh\" \".git-bin/git-issues.ts --out .git-bin/.issues\" \".git-bin/git-issues.ts --path src --tag TODO,BUG --out .git-bin/.bugs\" \".git-bin/issues-web.ts\" > .git/hooks/post-commit && chmod +x .git/hooks/post-commit .git-bin/git-issues.ts .git-bin/issues-web.ts'",
+    "issues:web": "deno run --allow-read --allow-write .git-bin/issues-web.ts",
+    "issues:web:open": "sh -c 'deno task issues:web >/dev/null 2>&1 || true; open .git-bin/issues.html'"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
