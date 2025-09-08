@@ -1,0 +1,18 @@
+# gitodos configuration file
+# Simple, effective issue tracking for single developers
+
+# Tags to scan for (comma-separated)
+tags=TODO,BUG,FIXME,XXX,HACK,NOTE,QUESTION
+
+# Patterns to ignore (comma-separated)
+# Supports: directory/ for directories, *.ext for extensions, or exact matches
+ignore=vendor/,node_modules/,dist/,.git/,.git-bin/,*.min.js,*.map
+
+# Number of context lines to show around issues (not yet implemented)
+context_lines=0
+
+# Maximum age in days before issues are considered stale (optional)
+# max_age_days=90
+
+# Include resolved issues (DONE, RESOLVED) in scans
+include_resolved=false

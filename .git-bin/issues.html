@@ -4,28 +4,47 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Inline Issues</title>
-<style>:root{--bg:#0b1020;--bg-card:#121a33;--fg:#e7ecff;--muted:#aab3d1;--acc:#5b8cff;--ok:#28c386;--warn:#ffb020;--bad:#ff5c77}
+<style>:root{--bg:#0b1020;--bg-card:#121a33;--fg:#e7ecff;--muted:#aab3d1;--acc:#5b8cff;--ok:#28c386;--warn:#ffb020;--bad:#ff5c77;--critical:#ff1744;--high:#ff9800;--normal:#4caf50;--low:#9e9e9e}
   *{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;background:var(--bg);color:var(--fg)}
   header{padding:16px 20px;border-bottom:1px solid #1c274d;background:linear-gradient(180deg,#0c1326,#0b1020)}
   header h1{margin:0;font-size:18px}
   header .sub{color:var(--muted);font-size:12px;margin-top:4px}
-  main{padding:20px;max-width:1100px;margin:0 auto}
+  main{padding:20px;max-width:1200px;margin:0 auto}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+  .stat-card{background:var(--bg-card);border:1px solid #1c274d;border-radius:8px;padding:12px;text-align:center}
+  .stat-value{font-size:24px;font-weight:bold;color:var(--acc)}
+  .stat-label{font-size:12px;color:var(--muted);margin-top:4px}
   .panel{background:var(--bg-card);border:1px solid #1c274d;border-radius:12px;padding:12px}
   .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px}
-  .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #29407a;border-radius:999px;padding:6px 10px;color:var(--fg);background:#0e1630}
+  .search-box{flex:1;min-width:200px;padding:6px 12px;background:#0e1630;border:1px solid #29407a;color:var(--fg);border-radius:8px}
+  .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #29407a;border-radius:999px;padding:6px 10px;color:var(--fg);background:#0e1630;cursor:pointer}
   .badge input{accent-color:var(--acc)}
   .select{background:#0e1630;border:1px solid #29407a;color:var(--fg);padding:6px 10px;border-radius:8px}
+  .group-header{background:#0e1630;padding:8px 12px;margin:8px 0;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  .group-header:hover{background:#1a2040}
+  .group-content{margin-bottom:16px}
+  .collapsed .group-content{display:none}
   table{width:100%;border-collapse:collapse}
-  th,td{padding:10px;border-bottom:1px solid #1c274d;vertical-align:top}
-  th{color:var(--muted);text-align:left;font-weight:600}
+  th,td{padding:8px;border-bottom:1px solid #1c274d;vertical-align:top}
+  th{color:var(--muted);text-align:left;font-weight:600;font-size:12px;text-transform:uppercase}
   tr:hover td{background:#0f1833}
-  .tag{font-weight:700}
-  .tag[data-tag="BUG"], .tag[data-tag="FIXME"], .tag[data-tag="HACK"]{color:var(--bad)}
-  .tag[data-tag="TODO"]{color:var(--warn)}
-  .file{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;color:#c7d2fe}
-  .msg{white-space:pre-wrap}
-  .empty{color:var(--muted);padding:20px;text-align:center}
+  .priority{width:8px;padding:0;background:var(--normal)}
+  .priority[data-priority="critical"]{background:var(--critical)}
+  .priority[data-priority="high"]{background:var(--high)}
+  .priority[data-priority="low"]{background:var(--low)}
+  .tag{font-weight:700;font-size:11px;padding:2px 6px;border-radius:3px;background:#1a2040}
+  .tag[data-tag="BUG"], .tag[data-tag="FIXME"], .tag[data-tag="HACK"]{color:var(--bad);background:#3a1020}
+  .tag[data-tag="TODO"]{color:var(--warn);background:#3a2510}
+  .tag[data-tag="DONE"], .tag[data-tag="RESOLVED"]{color:var(--ok);background:#1a3020;text-decoration:line-through}
+  .file{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;color:#c7d2fe;font-size:12px}
+  .line-num{color:var(--muted);font-size:11px}
+  .msg{white-space:pre-wrap;font-size:13px}
+  .metadata{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+  .meta-item{font-size:11px;color:var(--muted);padding:2px 6px;background:#0e1630;border-radius:3px}
+  .empty{color:var(--muted);padding:40px;text-align:center}
+  .kbd{background:#1a2040;padding:2px 4px;border-radius:3px;font-size:11px;border:1px solid #29407a}
   @media(max-width:720px){
+    .stats{grid-template-columns:repeat(2,1fr)}
     table, thead, tbody, th, td, tr{display:block}
     thead{display:none}
     td{border-bottom:1px solid #1c274d}
@@ -34,39 +53,90 @@
 </head>
 <body>
 <header>
-  <h1>Inline Issues</h1>
-  <div class="sub">Generated at 2025-09-08T19:24:20.544Z · <span id="count">56</span> total · <span>Last viewed: <span id="lastUpdated"></span></span></div>
+  <h1>📋 Inline Issues</h1>
+  <div class="sub">Generated at 2025-09-08T19:49:13.858Z · <span id="count">67</span> filtered · <span>Last viewed: <span id="lastUpdated"></span></span></div>
 </header>
 <main>
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-total">67</div>
+      <div class="stat-label">Total Issues</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-critical" style="color:var(--critical)">0</div>
+      <div class="stat-label">Critical</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-high" style="color:var(--high)">0</div>
+      <div class="stat-label">High Priority</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-todo" style="color:var(--warn)">0</div>
+      <div class="stat-label">TODOs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-bug" style="color:var(--bad)">0</div>
+      <div class="stat-label">BUGs</div>
+    </div>
+  </div>
+  
   <div class="panel">
     <div class="controls">
-      <strong>Filter tags:</strong>
+      <input type="text" id="search" class="search-box" placeholder="🔍 Search issues... (press / to focus)">
+      <label class="badge">
+        <input type="checkbox" id="group-by-dir">
+        <span>Group by directory</span>
+      </label>
+    </div>
+    <div class="controls">
+      <strong>Tags:</strong>
       <span id="filters"></span>
       <span style="flex:1"></span>
-      <label>Sort by: <select id="sort" class="select">
+      <label>Sort: <select id="sort" class="select">
+        <option value="priority">Priority</option>
         <option value="file">File</option>
         <option value="line">Line</option>
         <option value="tag">Tag</option>
-        <option value="time">Timestamp</option>
+        <option value="time">Time</option>
       </select></label>
     </div>
     
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr><th>Tag</th><th>File:Line</th><th>Message</th><th>Timestamp</th></tr>
+          <tr><th width="8"></th><th width="80">Tag</th><th>Location</th><th>Message</th></tr>
         </thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
   </div>
+  
+  <div style="margin-top:20px;text-align:center;color:var(--muted);font-size:12px">
+    Keyboard shortcuts: <span class="kbd">/</span> Search · <span class="kbd">g</span> Group by directory · <span class="kbd">Esc</span> Clear focus
+  </div>
 </main>
 <script>(() => {
-    const entries = [{"ts":"2025-09-08 19:24:20","file":"README.md","line":11,"tag":"TODO","message":"…`, `# BUG: …`).","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"README.md","line":22,"tag":"TODO","message":"message here`","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"README.md","line":23,"tag":"BUG","message":"message here`","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"README.md","line":24,"tag":"FIXME","message":"message here */`","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/adapters/console-logger.ts","line":10,"tag":"TODO","message":"Replace with structured logging (JSON) and correlation IDs (requestId) for tracing.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/adapters/console-logger.ts","line":11,"tag":"TODO","message":"Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/config.ts","line":2,"tag":"TODO","message":"Load from environment and/or JSON file; validate with zod.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/config.ts","line":3,"tag":"TODO","message":"Manage secrets via environment/keystore; avoid committing secrets.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/handlers/echo.ts","line":4,"tag":"TODO","message":"Validate request body with zod schema; sanitize fields before echoing back.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/handlers/echo.ts","line":5,"tag":"TODO","message":"Document this endpoint in OpenAPI once schema layer is added.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/middleware.ts","line":67,"tag":"TODO","message":"Authentication/Authorization middleware (JWT/OAuth/session) with RBAC/ABAC policies.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/middleware.ts","line":68,"tag":"TODO","message":"Request validation & sanitization (zod) per route -> 400 with problem+json.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/middleware.ts","line":69,"tag":"TODO","message":"Rate limiting (token bucket/redis) and IP throttling. 429 Too Many Requests.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/middleware.ts","line":70,"tag":"TODO","message":"Monitoring/metrics (OpenTelemetry), structured logs with requestId tracing.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/middleware.ts","line":71,"tag":"TODO","message":"Security: add CSP, CSRF protection (for stateful flows), and HSTS.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/middleware.ts","line":72,"tag":"TODO","message":"CORS: per-environment policy and preflight caching (Access-Control-Max-Age).","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/middleware.ts","line":73,"tag":"TODO","message":"Request/response middleware pipeline with typed context augmentation.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/response.ts","line":34,"tag":"TODO","message":"Standardize error format with problem+json (RFC 7807) and error codes/enums.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/response.ts","line":35,"tag":"TODO","message":"Add content negotiation for XML/Protobuf/etc. if needed.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/router.ts","line":22,"tag":"TODO","message":"Add path params (e.g., /users/:id) with fast pattern matching and param extraction.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/router.ts","line":23,"tag":"TODO","message":"Add route-level middleware and input/output schema validation.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/router.ts","line":24,"tag":"TODO","message":"Generate OpenAPI (and docs site) from route schemas and metadata.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/router.ts","line":25,"tag":"TODO","message":"Add automatic HEAD handling for GET routes and 405 Method Not Allowed support.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/types.ts","line":16,"tag":"TODO","message":"add path params when router supports it","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/http/types.ts","line":22,"tag":"TODO","message":"Typed context augmentation after middleware (e.g., ctx.user after auth, ctx.body after validation).","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/lib/result.ts","line":35,"tag":"TODO","message":"Add unit tests for Result utilities (ok/err/map/flatMap/mapError/fromPromise).","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/lib/result.ts","line":36,"tag":"TODO","message":"Consider adding Result helpers: tap, fold, and async variants.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/ports/database.ts","line":4,"tag":"TODO","message":"Implement adapters for Postgres/SQLite (connection pooling, migrations, retries).","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/ports/database.ts","line":5,"tag":"TODO","message":"Add transaction support with function-scoped unit of work.","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"src/ports/database.ts","line":14,"tag":"TODO","message":"Add transactional wrapper: transaction<T>(fn: (db: Database) => Promise<Result<T, DatabaseError>>)","source":".issues"},{"ts":"2025-09-08 19:24:20","file":"adapters/console-logger.ts","line":10,"tag":"TODO","message":"Replace with structured logging (JSON) and correlation IDs (requestId) for tracing.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"adapters/console-logger.ts","line":11,"tag":"TODO","message":"Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"config.ts","line":2,"tag":"TODO","message":"Load from environment and/or JSON file; validate with zod.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"config.ts","line":3,"tag":"TODO","message":"Manage secrets via environment/keystore; avoid committing secrets.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/handlers/echo.ts","line":4,"tag":"TODO","message":"Validate request body with zod schema; sanitize fields before echoing back.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/handlers/echo.ts","line":5,"tag":"TODO","message":"Document this endpoint in OpenAPI once schema layer is added.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/middleware.ts","line":67,"tag":"TODO","message":"Authentication/Authorization middleware (JWT/OAuth/session) with RBAC/ABAC policies.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/middleware.ts","line":68,"tag":"TODO","message":"Request validation & sanitization (zod) per route -> 400 with problem+json.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/middleware.ts","line":69,"tag":"TODO","message":"Rate limiting (token bucket/redis) and IP throttling. 429 Too Many Requests.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/middleware.ts","line":70,"tag":"TODO","message":"Monitoring/metrics (OpenTelemetry), structured logs with requestId tracing.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/middleware.ts","line":71,"tag":"TODO","message":"Security: add CSP, CSRF protection (for stateful flows), and HSTS.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/middleware.ts","line":72,"tag":"TODO","message":"CORS: per-environment policy and preflight caching (Access-Control-Max-Age).","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/middleware.ts","line":73,"tag":"TODO","message":"Request/response middleware pipeline with typed context augmentation.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/response.ts","line":34,"tag":"TODO","message":"Standardize error format with problem+json (RFC 7807) and error codes/enums.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/response.ts","line":35,"tag":"TODO","message":"Add content negotiation for XML/Protobuf/etc. if needed.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/router.ts","line":22,"tag":"TODO","message":"Add path params (e.g., /users/:id) with fast pattern matching and param extraction.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/router.ts","line":23,"tag":"TODO","message":"Add route-level middleware and input/output schema validation.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/router.ts","line":24,"tag":"TODO","message":"Generate OpenAPI (and docs site) from route schemas and metadata.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/router.ts","line":25,"tag":"TODO","message":"Add automatic HEAD handling for GET routes and 405 Method Not Allowed support.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/types.ts","line":16,"tag":"TODO","message":"add path params when router supports it","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"http/types.ts","line":22,"tag":"TODO","message":"Typed context augmentation after middleware (e.g., ctx.user after auth, ctx.body after validation).","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"lib/result.ts","line":35,"tag":"TODO","message":"Add unit tests for Result utilities (ok/err/map/flatMap/mapError/fromPromise).","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"lib/result.ts","line":36,"tag":"TODO","message":"Consider adding Result helpers: tap, fold, and async variants.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"ports/database.ts","line":4,"tag":"TODO","message":"Implement adapters for Postgres/SQLite (connection pooling, migrations, retries).","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"ports/database.ts","line":5,"tag":"TODO","message":"Add transaction support with function-scoped unit of work.","source":".bugs"},{"ts":"2025-09-08 19:24:20","file":"ports/database.ts","line":14,"tag":"TODO","message":"Add transactional wrapper: transaction<T>(fn: (db: Database) => Promise<Result<T, DatabaseError>>)","source":".bugs"}];
+    const entries = [{"ts":"2025-09-08 19:48:35","file":"README.md","line":29,"tag":"TODO","message":"` - Critical priority (shown in red)","priority":"critical","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":42,"tag":"TODO","message":"Deploy hotfix`","priority":"critical","owner":"alice","date":"2025-01-10","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":30,"tag":"TODO","message":"` - High priority (shown in orange)","priority":"high","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"CLAUDE.md","line":124,"tag":"TODO","message":"`, `BUG:`, `FIXME:`, `XXX:`, `HACK:`","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":11,"tag":"TODO","message":"…`, `# BUG: …`).","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":22,"tag":"TODO","message":"message here`","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":23,"tag":"BUG","message":"message here`","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":24,"tag":"FIXME","message":"message here */`","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":31,"tag":"TODO","message":"` - Normal priority (default)","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":37,"tag":"TODO","message":"message` - Assign to a person","priority":"normal","owner":"username","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":38,"tag":"TODO","message":"message` - Add due dates","priority":"normal","date":"2025-01-15","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":39,"tag":"TODO","message":"message` - Group by module/feature","priority":"normal","date":"auth","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":40,"tag":"TODO","message":"message` or `BUG: (REF-123): message` - Link to tickets","priority":"normal","id":"#42","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/adapters/console-logger.ts","line":10,"tag":"TODO","message":"Replace with structured logging (JSON) and correlation IDs (requestId) for tracing.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/adapters/console-logger.ts","line":11,"tag":"TODO","message":"Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/config.ts","line":2,"tag":"TODO","message":"Load from environment and/or JSON file; validate with zod.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/config.ts","line":3,"tag":"TODO","message":"Manage secrets via environment/keystore; avoid committing secrets.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/handlers/echo.ts","line":4,"tag":"TODO","message":"Validate request body with zod schema; sanitize fields before echoing back.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/handlers/echo.ts","line":5,"tag":"TODO","message":"Document this endpoint in OpenAPI once schema layer is added.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/middleware.ts","line":67,"tag":"TODO","message":"Authentication/Authorization middleware (JWT/OAuth/session) with RBAC/ABAC policies.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/middleware.ts","line":68,"tag":"TODO","message":"Request validation & sanitization (zod) per route -> 400 with problem+json.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/middleware.ts","line":69,"tag":"TODO","message":"Rate limiting (token bucket/redis) and IP throttling. 429 Too Many Requests.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/middleware.ts","line":70,"tag":"TODO","message":"Monitoring/metrics (OpenTelemetry), structured logs with requestId tracing.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/middleware.ts","line":71,"tag":"TODO","message":"Security: add CSP, CSRF protection (for stateful flows), and HSTS.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/middleware.ts","line":72,"tag":"TODO","message":"CORS: per-environment policy and preflight caching (Access-Control-Max-Age).","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/middleware.ts","line":73,"tag":"TODO","message":"Request/response middleware pipeline with typed context augmentation.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/response.ts","line":34,"tag":"TODO","message":"Standardize error format with problem+json (RFC 7807) and error codes/enums.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/response.ts","line":35,"tag":"TODO","message":"Add content negotiation for XML/Protobuf/etc. if needed.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/response.ts","line":36,"tag":"NOTE","message":"Keep response helpers pure and side-effect free.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/router.ts","line":22,"tag":"TODO","message":"Add path params (e.g., /users/:id) with fast pattern matching and param extraction.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/router.ts","line":23,"tag":"TODO","message":"Add route-level middleware and input/output schema validation.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/router.ts","line":24,"tag":"TODO","message":"Generate OpenAPI (and docs site) from route schemas and metadata.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/router.ts","line":25,"tag":"TODO","message":"Add automatic HEAD handling for GET routes and 405 Method Not Allowed support.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/types.ts","line":16,"tag":"TODO","message":"add path params when router supports it","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/http/types.ts","line":22,"tag":"TODO","message":"Typed context augmentation after middleware (e.g., ctx.user after auth, ctx.body after validation).","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/lib/result.ts","line":35,"tag":"TODO","message":"Add unit tests for Result utilities (ok/err/map/flatMap/mapError/fromPromise).","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/lib/result.ts","line":36,"tag":"TODO","message":"Consider adding Result helpers: tap, fold, and async variants.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/ports/database.ts","line":4,"tag":"TODO","message":"Implement adapters for Postgres/SQLite (connection pooling, migrations, retries).","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/ports/database.ts","line":5,"tag":"TODO","message":"Add transaction support with function-scoped unit of work.","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"src/ports/database.ts","line":14,"tag":"TODO","message":"Add transactional wrapper: transaction<T>(fn: (db: Database) => Promise<Result<T, DatabaseError>>)","priority":"normal","source":".issues"},{"ts":"2025-09-08 19:48:35","file":"README.md","line":32,"tag":"TODO","message":"` - Low priority (shown in gray)","priority":"low","source":".issues"},{"ts":"2025-09-08 19:36:43","file":"adapters/console-logger.ts","line":10,"tag":"TODO","message":"Replace with structured logging (JSON) and correlation IDs (requestId) for tracing.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"adapters/console-logger.ts","line":11,"tag":"TODO","message":"Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"config.ts","line":2,"tag":"TODO","message":"Load from environment and/or JSON file; validate with zod.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"config.ts","line":3,"tag":"TODO","message":"Manage secrets via environment/keystore; avoid committing secrets.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/handlers/echo.ts","line":4,"tag":"TODO","message":"Validate request body with zod schema; sanitize fields before echoing back.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/handlers/echo.ts","line":5,"tag":"TODO","message":"Document this endpoint in OpenAPI once schema layer is added.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/middleware.ts","line":67,"tag":"TODO","message":"Authentication/Authorization middleware (JWT/OAuth/session) with RBAC/ABAC policies.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/middleware.ts","line":68,"tag":"TODO","message":"Request validation & sanitization (zod) per route -> 400 with problem+json.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/middleware.ts","line":69,"tag":"TODO","message":"Rate limiting (token bucket/redis) and IP throttling. 429 Too Many Requests.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/middleware.ts","line":70,"tag":"TODO","message":"Monitoring/metrics (OpenTelemetry), structured logs with requestId tracing.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/middleware.ts","line":71,"tag":"TODO","message":"Security: add CSP, CSRF protection (for stateful flows), and HSTS.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/middleware.ts","line":72,"tag":"TODO","message":"CORS: per-environment policy and preflight caching (Access-Control-Max-Age).","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/middleware.ts","line":73,"tag":"TODO","message":"Request/response middleware pipeline with typed context augmentation.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/response.ts","line":34,"tag":"TODO","message":"Standardize error format with problem+json (RFC 7807) and error codes/enums.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/response.ts","line":35,"tag":"TODO","message":"Add content negotiation for XML/Protobuf/etc. if needed.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/router.ts","line":22,"tag":"TODO","message":"Add path params (e.g., /users/:id) with fast pattern matching and param extraction.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/router.ts","line":23,"tag":"TODO","message":"Add route-level middleware and input/output schema validation.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/router.ts","line":24,"tag":"TODO","message":"Generate OpenAPI (and docs site) from route schemas and metadata.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/router.ts","line":25,"tag":"TODO","message":"Add automatic HEAD handling for GET routes and 405 Method Not Allowed support.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/types.ts","line":16,"tag":"TODO","message":"add path params when router supports it","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"http/types.ts","line":22,"tag":"TODO","message":"Typed context augmentation after middleware (e.g., ctx.user after auth, ctx.body after validation).","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"lib/result.ts","line":35,"tag":"TODO","message":"Add unit tests for Result utilities (ok/err/map/flatMap/mapError/fromPromise).","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"lib/result.ts","line":36,"tag":"TODO","message":"Consider adding Result helpers: tap, fold, and async variants.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"ports/database.ts","line":4,"tag":"TODO","message":"Implement adapters for Postgres/SQLite (connection pooling, migrations, retries).","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"ports/database.ts","line":5,"tag":"TODO","message":"Add transaction support with function-scoped unit of work.","priority":"normal","source":".bugs"},{"ts":"2025-09-08 19:36:43","file":"ports/database.ts","line":14,"tag":"TODO","message":"Add transactional wrapper: transaction<T>(fn: (db: Database) => Promise<Result<T, DatabaseError>>)","priority":"normal","source":".bugs"}];
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
     const tags = Array.from(new Set(entries.map(e => e.tag))).sort();
+    const priorityOrder = { critical: 0, high: 1, normal: 2, low: 3 };
+
+    // Stats
+    function updateStats() {
+      const byTag = {};
+      const byPriority = { critical: 0, high: 0, normal: 0, low: 0 };
+      entries.forEach(e => {
+        byTag[e.tag] = (byTag[e.tag] || 0) + 1;
+        byPriority[e.priority] = (byPriority[e.priority] || 0) + 1;
+      });
+      $('#stat-total').textContent = entries.length;
+      $('#stat-critical').textContent = byPriority.critical;
+      $('#stat-high').textContent = byPriority.high;
+      $('#stat-todo').textContent = byTag.TODO || 0;
+      $('#stat-bug').textContent = byTag.BUG || 0;
+    }
 
     // Build tag filters
     const filtersEl = $('#filters');
@@ -79,57 +149,133 @@
     }
 
     const getActiveTags = () => tags.filter(t => $('#tag-'+t)?.checked);
-
+    const searchBox = $('#search');
     const sortSel = $('#sort');
+    const groupCheck = $('#group-by-dir');
     const tbody = $('#rows');
     const countEl = $('#count');
 
     function render(){
       const active = new Set(getActiveTags());
-      const sorted = entries.slice().filter(e => active.has(e.tag));
+      const searchTerm = searchBox.value.toLowerCase();
+      
+      let filtered = entries.filter(e => {
+        if (!active.has(e.tag)) return false;
+        if (searchTerm && !e.message.toLowerCase().includes(searchTerm) && 
+            !e.file.toLowerCase().includes(searchTerm)) return false;
+        return true;
+      });
+
       const mode = sortSel.value;
-      sorted.sort((a,b) => {
+      filtered.sort((a,b) => {
+        if (mode === 'priority') {
+          const prioCmp = priorityOrder[a.priority] - priorityOrder[b.priority];
+          if (prioCmp !== 0) return prioCmp;
+          return a.file.localeCompare(b.file) || a.line - b.line;
+        }
         if (mode === 'file') return a.file.localeCompare(b.file) || a.line - b.line;
         if (mode === 'line') return a.line - b.line || a.file.localeCompare(b.file);
         if (mode === 'tag') return a.tag.localeCompare(b.tag) || a.file.localeCompare(b.file) || a.line - b.line;
         if (mode === 'time') return a.ts.localeCompare(b.ts) || a.file.localeCompare(b.file) || a.line - b.line;
         return 0;
       });
+
       tbody.innerHTML = '';
-      for (const e of sorted){
-        const tr = document.createElement('tr');
+      
+      if (groupCheck.checked) {
+        // Group by directory
+        const groups = {};
+        filtered.forEach(e => {
+          const dir = e.file.includes('/') ? e.file.substring(0, e.file.lastIndexOf('/')) : '.';
+          if (!groups[dir]) groups[dir] = [];
+          groups[dir].push(e);
+        });
 
-        const tdTag = document.createElement('td');
-        tdTag.className = 'tag';
-        tdTag.setAttribute('data-col','Tag');
-        tdTag.dataset.tag = e.tag;
-        tdTag.textContent = e.tag;
-
-        const tdFile = document.createElement('td');
-        tdFile.className = 'file';
-        tdFile.setAttribute('data-col','File:Line');
-        tdFile.textContent = e.file + ':' + e.line;
-
-        const tdMsg = document.createElement('td');
-        tdMsg.className = 'msg';
-        tdMsg.setAttribute('data-col','Message');
-        tdMsg.textContent = e.message;
-
-        const tdTs = document.createElement('td');
-        tdTs.className = 'ts';
-        tdTs.setAttribute('data-col','Timestamp');
-        tdTs.textContent = e.ts;
-
-        tr.append(tdTag, tdFile, tdMsg, tdTs);
-        tbody.appendChild(tr);
+        Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).forEach(([dir, items]) => {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'group';
+          
+          const header = document.createElement('div');
+          header.className = 'group-header';
+          header.innerHTML = '<span>📁 ' + dir + '</span><span>(' + items.length + ')</span>';
+          header.onclick = () => groupDiv.classList.toggle('collapsed');
+          
+          const content = document.createElement('div');
+          content.className = 'group-content';
+          
+          const table = document.createElement('table');
+          items.forEach(e => table.appendChild(createRow(e)));
+          content.appendChild(table);
+          
+          groupDiv.appendChild(header);
+          groupDiv.appendChild(content);
+          tbody.appendChild(groupDiv);
+        });
+      } else {
+        filtered.forEach(e => tbody.appendChild(createRow(e)));
       }
-      countEl.textContent = String(sorted.length);
+      
+      countEl.textContent = String(filtered.length);
       document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
     }
 
+    function createRow(e) {
+      const tr = document.createElement('tr');
+
+      const tdPriority = document.createElement('td');
+      tdPriority.className = 'priority';
+      tdPriority.dataset.priority = e.priority;
+      tdPriority.title = e.priority;
+
+      const tdTag = document.createElement('td');
+      tdTag.innerHTML = '<span class="tag" data-tag="' + e.tag + '">' + e.tag + '</span>';
+      tdTag.setAttribute('data-col','Tag');
+
+      const tdFile = document.createElement('td');
+      tdFile.setAttribute('data-col','Location');
+      tdFile.innerHTML = '<span class="file">' + e.file + '</span>:<span class="line-num">' + e.line + '</span>';
+
+      const tdMsg = document.createElement('td');
+      tdMsg.className = 'msg';
+      tdMsg.setAttribute('data-col','Message');
+      tdMsg.textContent = e.message;
+      
+      // Add metadata if present
+      const meta = [];
+      if (e.owner) meta.push('<span class="meta-item">@' + e.owner + '</span>');
+      if (e.date) meta.push('<span class="meta-item">📅 ' + e.date + '</span>');
+      if (e.category) meta.push('<span class="meta-item">[' + e.category + ']</span>');
+      if (e.id) meta.push('<span class="meta-item">' + e.id + '</span>');
+      if (meta.length > 0) {
+        tdMsg.innerHTML = tdMsg.textContent + '<div class="metadata">' + meta.join('') + '</div>';
+      }
+
+      tr.append(tdPriority, tdTag, tdFile, tdMsg);
+      return tr;
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (e.key === '/' && document.activeElement !== searchBox) {
+        e.preventDefault();
+        searchBox.focus();
+      }
+      if (e.key === 'Escape') {
+        searchBox.blur();
+      }
+      if (e.key === 'g' && !e.ctrlKey && !e.metaKey && document.activeElement !== searchBox) {
+        e.preventDefault();
+        groupCheck.checked = !groupCheck.checked;
+        render();
+      }
+    });
+
+    searchBox.addEventListener('input', render);
     filtersEl.addEventListener('change', render);
     sortSel.addEventListener('change', render);
+    groupCheck.addEventListener('change', render);
 
+    updateStats();
     render();
   })();</script>
 </body>
