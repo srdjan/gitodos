@@ -1,0 +1,28 @@
+# Inline-issue snapshot 2025-09-08 18:50:00
+# Format:  path:line  tag  message
+src/adapters/console-logger.ts:10  TODO  Replace with structured logging (JSON) and correlation IDs (requestId) for tracing.
+src/adapters/console-logger.ts:11  TODO  Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling.
+src/config.ts:2  TODO  Load from environment and/or JSON file; validate with zod.
+src/config.ts:3  TODO  Manage secrets via environment/keystore; avoid committing secrets.
+src/http/handlers/echo.ts:4  TODO  Validate request body with zod schema; sanitize fields before echoing back.
+src/http/handlers/echo.ts:5  TODO  Document this endpoint in OpenAPI once schema layer is added.
+src/http/middleware.ts:67  TODO  Authentication/Authorization middleware (JWT/OAuth/session) with RBAC/ABAC policies.
+src/http/middleware.ts:68  TODO  Request validation & sanitization (zod) per route -> 400 with problem+json.
+src/http/middleware.ts:69  TODO  Rate limiting (token bucket/redis) and IP throttling. 429 Too Many Requests.
+src/http/middleware.ts:70  TODO  Monitoring/metrics (OpenTelemetry), structured logs with requestId tracing.
+src/http/middleware.ts:71  TODO  Security: add CSP, CSRF protection (for stateful flows), and HSTS.
+src/http/middleware.ts:72  TODO  CORS: per-environment policy and preflight caching (Access-Control-Max-Age).
+src/http/middleware.ts:73  TODO  Request/response middleware pipeline with typed context augmentation.
+src/http/response.ts:34  TODO  Standardize error format with problem+json (RFC 7807) and error codes/enums.
+src/http/response.ts:35  TODO  Add content negotiation for XML/Protobuf/etc. if needed.
+src/http/router.ts:22  TODO  Add path params (e.g., /users/:id) with fast pattern matching and param extraction.
+src/http/router.ts:23  TODO  Add route-level middleware and input/output schema validation.
+src/http/router.ts:24  TODO  Generate OpenAPI (and docs site) from route schemas and metadata.
+src/http/router.ts:25  TODO  Add automatic HEAD handling for GET routes and 405 Method Not Allowed support.
+src/http/types.ts:16  TODO  add path params when router supports it
+src/http/types.ts:22  TODO  Typed context augmentation after middleware (e.g., ctx.user after auth, ctx.body after validation).
+src/lib/result.ts:35  TODO  Add unit tests for Result utilities (ok/err/map/flatMap/mapError/fromPromise).
+src/lib/result.ts:36  TODO  Consider adding Result helpers: tap, fold, and async variants.
+src/ports/database.ts:14  TODO  Add transactional wrapper: transaction<T>(fn: (db: Database) => Promise<Result<T, DatabaseError>>)
+src/ports/database.ts:4  TODO  Implement adapters for Postgres/SQLite (connection pooling, migrations, retries).
+src/ports/database.ts:5  TODO  Add transaction support with function-scoped unit of work.
