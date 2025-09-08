@@ -41,7 +41,8 @@ const parseHeaderSnapshotTime = (text: string): string | null => {
 
 const parseLines = (text: string, source: string): Issue[] => {
   if (!text) return [];
-  const snapshotTs = parseHeaderSnapshotTime(text) ?? new Date().toISOString().slice(0, 19).replace("T", " ");
+  const snapshotTs = parseHeaderSnapshotTime(text) ??
+    new Date().toISOString().slice(0, 19).replace("T", " ");
   const out: Issue[] = [];
   for (const raw of text.split("\n")) {
     const line = raw.trim();
@@ -84,7 +85,8 @@ const buildHtml = (issues: Issue[]): string => {
   const tags = Array.from(new Set(issues.map((i) => i.tag))).sort();
   const dataJson = JSON.stringify(issues);
 
-  const css = `:root{--bg:#0b1020;--bg-card:#121a33;--fg:#e7ecff;--muted:#aab3d1;--acc:#5b8cff;--ok:#28c386;--warn:#ffb020;--bad:#ff5c77}
+  const css =
+    `:root{--bg:#0b1020;--bg-card:#121a33;--fg:#e7ecff;--muted:#aab3d1;--acc:#5b8cff;--ok:#28c386;--warn:#ffb020;--bad:#ff5c77}
   *{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;background:var(--bg);color:var(--fg)}
   header{padding:16px 20px;border-bottom:1px solid #1c274d;background:linear-gradient(180deg,#0c1326,#0b1020)}
   header h1{margin:0;font-size:18px}
@@ -149,12 +151,29 @@ const buildHtml = (issues: Issue[]): string => {
       tbody.innerHTML = '';
       for (const e of sorted){
         const tr = document.createElement('tr');
-        tr.innerHTML = ` +
-      "`<td class=\"tag\" data-col=\"Tag\" data-tag=\"${'${e.tag}'}\">${'${e.tag}'}</td>" +
-      "<td class=\"file\" data-col=\"File:Line\">${'${e.file}'}:${'${e.line}'}</td>" +
-      "<td class=\"msg\" data-col=\"Message\">${'${e.message.replace(/&/g,'&amp;').replace(/</g,'&lt;')}'}</td>" +
-      "<td class=\"ts\" data-col=\"Timestamp\">${'${e.ts}'}</td>`" +
-      `;
+
+        const tdTag = document.createElement('td');
+        tdTag.className = 'tag';
+        tdTag.setAttribute('data-col','Tag');
+        tdTag.dataset.tag = e.tag;
+        tdTag.textContent = e.tag;
+
+        const tdFile = document.createElement('td');
+        tdFile.className = 'file';
+        tdFile.setAttribute('data-col','File:Line');
+        tdFile.textContent = e.file + ':' + e.line;
+
+        const tdMsg = document.createElement('td');
+        tdMsg.className = 'msg';
+        tdMsg.setAttribute('data-col','Message');
+        tdMsg.textContent = e.message;
+
+        const tdTs = document.createElement('td');
+        tdTs.className = 'ts';
+        tdTs.setAttribute('data-col','Timestamp');
+        tdTs.textContent = e.ts;
+
+        tr.append(tdTag, tdFile, tdMsg, tdTs);
         tbody.appendChild(tr);
       }
       countEl.textContent = String(sorted.length);
@@ -180,7 +199,9 @@ const buildHtml = (issues: Issue[]): string => {
 <body>
 <header>
   <h1>Inline Issues</h1>
-  <div class="sub">Generated at ${escapeHtml(generatedAt)} · <span id="count">${issues.length}</span> total · <span>Last viewed: <span id="lastUpdated"></span></span></div>
+  <div class="sub">Generated at ${
+    escapeHtml(generatedAt)
+  } · <span id="count">${issues.length}</span> total · <span>Last viewed: <span id="lastUpdated"></span></span></div>
 </header>
 <main>
   <div class="panel">
@@ -195,7 +216,10 @@ const buildHtml = (issues: Issue[]): string => {
         <option value="time">Timestamp</option>
       </select></label>
     </div>
-    ${issues.length === 0 ? `<div class="empty">No issues found. Run the scanner tasks to generate data.</div>` : `
+    ${
+    issues.length === 0
+      ? `<div class="empty">No issues found. Run the scanner tasks to generate data.</div>`
+      : `
     <div class="table-wrapper">
       <table>
         <thead>
@@ -203,7 +227,8 @@ const buildHtml = (issues: Issue[]): string => {
         </thead>
         <tbody id="rows"></tbody>
       </table>
-    </div>`}
+    </div>`
+  }
   </div>
 </main>
 <script>${js}</script>
@@ -240,4 +265,3 @@ const main = async () => {
 if (import.meta.main) {
   await main();
 }
-
