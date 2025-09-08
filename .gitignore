@@ -1,4 +1,6 @@
 .DS_Store
+
+# Generated issue tracking files
 .git-bin/.bugs
 .git-bin/.issues
 .git-bin/issues.html
