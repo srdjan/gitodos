@@ -7,6 +7,4 @@ export const createConsoleLogger = (): Logger => ({
   debug: (message, data) => console.debug(`[DEBUG] ${message}`, data ?? ""),
 });
 
-// TODO: Replace with structured logging (JSON) and correlation IDs (requestId) for tracing.
-// TODO: Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling.
 

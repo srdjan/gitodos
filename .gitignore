@@ -7,3 +7,4 @@
 .git-bin/bugs.json
 .git-bin/issues.json
 dist/
+.git-bin/todos.db

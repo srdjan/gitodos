@@ -1,0 +1,189 @@
+<!doctype html>
+  <html><head><meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Issue History</title>
+  <style>
+    :root{--bg:#0b1020;--bg-card:#121a33;--fg:#e7ecff;--muted:#aab3d1;--acc:#5b8cff;--warn:#ffb020;--bad:#ff5c77}
+    *{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;background:var(--bg);color:var(--fg)}
+    header{padding:16px 20px;border-bottom:1px solid #1c274d;background:linear-gradient(180deg,#0c1326,#0b1020)}
+    header h1{margin:0;font-size:18px}
+    header .sub{color:var(--muted);font-size:12px;margin-top:4px}
+    main{padding:20px;max-width:1200px;margin:0 auto}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+    .stat-card{background:var(--bg-card);border:1px solid #1c274d;border-radius:8px;padding:12px;text-align:center}
+    .stat-value{font-size:24px;font-weight:bold;color:var(--acc)}
+    .stat-label{font-size:12px;color:var(--muted);margin-top:4px}
+    .panel{background:var(--bg-card);border:1px solid #1c274d;border-radius:12px;padding:12px}
+    .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px}
+    .search-box{flex:1;min-width:220px;padding:6px 12px;background:#0e1630;border:1px solid #29407a;color:var(--fg);border-radius:8px}
+    .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #29407a;border-radius:999px;padding:6px 10px;color:var(--fg);background:#0e1630}
+    .badge input{accent-color:var(--acc)}
+    .select{background:#0e1630;border:1px solid #29407a;color:var(--fg);padding:6px 10px;border-radius:8px}
+    .list{display:block}
+    .list .row{display:grid;grid-template-columns:16px 1fr;gap:10px;padding:10px 6px;border-bottom:1px solid #1c274d}
+    .bullet{color:var(--muted);}
+    .item{display:block}
+    .head{display:flex;gap:8px;align-items:center}
+    .badge-type{font-weight:700;font-size:11px;padding:2px 6px;border-radius:3px;background:#1a2040;flex:0 0 auto}
+    .badge-type.todo{color:var(--warn);background:#3a2510}
+    .badge-type.bug{color:var(--bad);background:#3a1020}
+    .title{font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+    .sub{margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .meta{color:var(--muted);font-size:12px}
+    .path{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;background:#0e1630;border:1px solid #29407a;border-radius:6px;padding:2px 6px;color:#c7d2fe}
+    .pill{display:inline-block;background:#0e1630;border:1px solid #29407a;border-radius:999px;padding:2px 8px;font-size:11px}
+    @media(max-width:720px){.controls{gap:8px}.stats{grid-template-columns:repeat(2,1fr)}}
+  </style>
+  </head>
+  <body>
+    <header>
+      <h1>📚 Issue History</h1>
+      <div class="sub">Durable journal from todos.db · <span id="count">66</span> items · <span id="lastUpdated"></span></div>
+    </header>
+    <main>
+      <div class="stats">
+        <div class="stat-card"><div class="stat-value" id="stat-total">66</div><div class="stat-label">Total</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-active">66</div><div class="stat-label">Active</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-completed">0</div><div class="stat-label">Completed</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-todo">0</div><div class="stat-label">TODO</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-bug">0</div><div class="stat-label">BUG</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="controls">
+          <input type="text" id="search" class="search-box" placeholder="🔍 Search title/description (press / to focus)">
+          <label class="badge"><input type="checkbox" id="type-TODO" checked> <span>TODO</span></label>
+          <label class="badge"><input type="checkbox" id="type-BUG" checked> <span>BUG</span></label>
+          <span style="width:12px"></span>
+          <label class="badge"><input type="checkbox" id="status-active" checked> <span>Active</span></label>
+          <label class="badge"><input type="checkbox" id="status-completed"> <span>Completed</span></label>
+          <label class="badge"><input type="checkbox" id="status-cancelled"> <span>Cancelled</span></label>
+          <span style="flex:1"></span>
+          <label class="badge"><input type="checkbox" id="high-only"> <span>High only</span></label>
+          <label>Sort: <select id="sort" class="select">
+            <option value="created" selected>Created (newest)</option>
+            <option value="completed">Completed (newest)</option>
+            <option value="priority">Priority</option>
+            <option value="type">Type</option>
+          </select></label>
+        </div>
+        <div id="rows" class="list"></div>
+      </div>
+    </main>
+    <script>(() => {
+    const entries = [{"id":43,"type":"TODO","title":"Load from environment and/or JSON file; validate with zod.","description":"config.ts:2","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|config.ts|Load from environment and/or JSON file; validate with zod."},{"id":44,"type":"TODO","title":"Manage secrets via environment/keystore; avoid committing secrets.","description":"config.ts:3","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|config.ts|Manage secrets via environment/keystore; avoid committing secrets."},{"id":45,"type":"TODO","title":"Validate request body with zod schema; sanitize fields before echoing back.","description":"http/handlers/echo.ts:4","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/handlers/echo.ts|Validate request body with zod schema; sanitize fields before echoing back."},{"id":46,"type":"TODO","title":"Document this endpoint in OpenAPI once schema layer is added.","description":"http/handlers/echo.ts:5","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/handlers/echo.ts|Document this endpoint in OpenAPI once schema layer is added."},{"id":47,"type":"TODO","title":"Authentication/Authorization middleware (JWT/OAuth/session) with RBAC/ABAC policies.","description":"http/middleware.ts:67","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/middleware.ts|Authentication/Authorization middleware (JWT/OAuth/session) with RBAC/ABAC policies."},{"id":48,"type":"TODO","title":"Request validation & sanitization (zod) per route -> 400 with problem+json.","description":"http/middleware.ts:68","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/middleware.ts|Request validation & sanitization (zod) per route -> 400 with problem+json."},{"id":49,"type":"TODO","title":"Rate limiting (token bucket/redis) and IP throttling. 429 Too Many Requests.","description":"http/middleware.ts:69","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/middleware.ts|Rate limiting (token bucket/redis) and IP throttling. 429 Too Many Requests."},{"id":50,"type":"TODO","title":"Monitoring/metrics (OpenTelemetry), structured logs with requestId tracing.","description":"http/middleware.ts:70","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/middleware.ts|Monitoring/metrics (OpenTelemetry), structured logs with requestId tracing."},{"id":51,"type":"TODO","title":"Security: add CSP, CSRF protection (for stateful flows), and HSTS.","description":"http/middleware.ts:71","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/middleware.ts|Security: add CSP, CSRF protection (for stateful flows), and HSTS."},{"id":52,"type":"TODO","title":"CORS: per-environment policy and preflight caching (Access-Control-Max-Age).","description":"http/middleware.ts:72","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/middleware.ts|CORS: per-environment policy and preflight caching (Access-Control-Max-Age)."},{"id":53,"type":"TODO","title":"Request/response middleware pipeline with typed context augmentation.","description":"http/middleware.ts:73","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/middleware.ts|Request/response middleware pipeline with typed context augmentation."},{"id":54,"type":"TODO","title":"Standardize error format with problem+json (RFC 7807) and error codes/enums.","description":"http/response.ts:34","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/response.ts|Standardize error format with problem+json (RFC 7807) and error codes/enums."},{"id":55,"type":"TODO","title":"Add content negotiation for XML/Protobuf/etc. if needed.","description":"http/response.ts:35","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/response.ts|Add content negotiation for XML/Protobuf/etc. if needed."},{"id":56,"type":"TODO","title":"Add path params (e.g., /users/:id) with fast pattern matching and param extraction.","description":"http/router.ts:22","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/router.ts|Add path params (e.g., /users/:id) with fast pattern matching and param extraction."},{"id":57,"type":"TODO","title":"Add route-level middleware and input/output schema validation.","description":"http/router.ts:23","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/router.ts|Add route-level middleware and input/output schema validation."},{"id":58,"type":"TODO","title":"Generate OpenAPI (and docs site) from route schemas and metadata.","description":"http/router.ts:24","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/router.ts|Generate OpenAPI (and docs site) from route schemas and metadata."},{"id":59,"type":"TODO","title":"Add automatic HEAD handling for GET routes and 405 Method Not Allowed support.","description":"http/router.ts:25","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/router.ts|Add automatic HEAD handling for GET routes and 405 Method Not Allowed support."},{"id":60,"type":"TODO","title":"add path params when router supports it","description":"http/types.ts:16","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/types.ts|add path params when router supports it"},{"id":61,"type":"TODO","title":"Typed context augmentation after middleware (e.g., ctx.user after auth, ctx.body after validation).","description":"http/types.ts:22","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|http/types.ts|Typed context augmentation after middleware (e.g., ctx.user after auth, ctx.body after validation)."},{"id":62,"type":"TODO","title":"Add unit tests for Result utilities (ok/err/map/flatMap/mapError/fromPromise).","description":"lib/result.ts:35","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|lib/result.ts|Add unit tests for Result utilities (ok/err/map/flatMap/mapError/fromPromise)."},{"id":63,"type":"TODO","title":"Consider adding Result helpers: tap, fold, and async variants.","description":"lib/result.ts:36","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|lib/result.ts|Consider adding Result helpers: tap, fold, and async variants."},{"id":64,"type":"TODO","title":"Implement adapters for Postgres/SQLite (connection pooling, migrations, retries).","description":"ports/database.ts:4","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|ports/database.ts|Implement adapters for Postgres/SQLite (connection pooling, migrations, retries)."},{"id":65,"type":"TODO","title":"Add transaction support with function-scoped unit of work.","description":"ports/database.ts:5","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|ports/database.ts|Add transaction support with function-scoped unit of work."},{"id":66,"type":"TODO","title":"Add transactional wrapper: transaction<T>(fn: (db: Database) => Promise<Result<T, DatabaseError>>)","description":"ports/database.ts:14","status":"active","created_at":"2025-09-09 17:34:12","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|ports/database.ts|Add transactional wrapper: transaction<T>(fn: (db: Database) => Promise<Result<T, DatabaseError>>)"},{"id":1,"type":"TODO","title":"` or `BUG!:` → high priority","description":"CLAUDE.md:137","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":4,"tags":null,"source_key":"TODO|CLAUDE.md|` or `BUG!:` → high priority"},{"id":2,"type":"TODO","title":"` or `BUG!:` — High priority","description":"README.md:30","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":4,"tags":null,"source_key":"TODO|README.md|` or `BUG!:` — High priority"},{"id":3,"type":"TODO","title":"`). Metadata (`@owner`, `[date|category]`, `(#id)`/`(ABC-123)`) is parsed only at the start of the message if present.","description":"README.md:190","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":4,"tags":null,"source_key":"TODO|README.md|`). Metadata (`@owner`, `[date|category]`, `(#id)`/`(ABC-123)`) is parsed only at the start of the message if present."},{"id":4,"type":"TODO","title":"` and `BUG:` (only)","description":"CLAUDE.md:125","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|CLAUDE.md|` and `BUG:` (only)"},{"id":5,"type":"TODO","title":"` or `BUG:` → normal priority","description":"CLAUDE.md:138","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|CLAUDE.md|` or `BUG:` → normal priority"},{"id":6,"type":"TODO","title":"…`, `# BUG: …`).","description":"README.md:11","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|README.md|…`, `# BUG: …`)."},{"id":7,"type":"TODO","title":"message here`","description":"README.md:22","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|README.md|message here`"},{"id":8,"type":"BUG","title":"message here`","description":"README.md:23","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"BUG|README.md|message here`"},{"id":9,"type":"TODO","title":"` or `BUG:` — Normal priority","description":"README.md:31","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|README.md|` or `BUG:` — Normal priority"},{"id":10,"type":"TODO","title":"message` - Assign to a person","description":"README.md:36","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|README.md|message` - Assign to a person"},{"id":11,"type":"TODO","title":"message` - Add due dates","description":"README.md:37","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|README.md|message` - Add due dates"},{"id":12,"type":"TODO","title":"message` - Group by module/feature","description":"README.md:38","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|README.md|message` - Group by module/feature"},{"id":13,"type":"TODO","title":"message` or `BUG: (REF-123): message` - Link to tickets","description":"README.md:39","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|README.md|message` or `BUG: (REF-123): message` - Link to tickets"},{"id":14,"type":"TODO","title":"` and `BUG:` are recognized; a single `!` before","description":"README.md:189","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|README.md|` and `BUG:` are recognized; a single `!` before"},{"id":15,"type":"TODO","title":"Replace with structured logging (JSON) and correlation IDs (requestId) for tracing.","description":"src/adapters/console-logger.ts:10","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/adapters/console-logger.ts|Replace with structured logging (JSON) and correlation IDs (requestId) for tracing."},{"id":16,"type":"TODO","title":"Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling.","description":"src/adapters/console-logger.ts:11","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/adapters/console-logger.ts|Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling."},{"id":17,"type":"TODO","title":"Load from environment and/or JSON file; validate with zod.","description":"src/config.ts:2","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/config.ts|Load from environment and/or JSON file; validate with zod."},{"id":18,"type":"TODO","title":"Manage secrets via environment/keystore; avoid committing secrets.","description":"src/config.ts:3","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/config.ts|Manage secrets via environment/keystore; avoid committing secrets."},{"id":19,"type":"TODO","title":"Validate request body with zod schema; sanitize fields before echoing back.","description":"src/http/handlers/echo.ts:4","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/handlers/echo.ts|Validate request body with zod schema; sanitize fields before echoing back."},{"id":20,"type":"TODO","title":"Document this endpoint in OpenAPI once schema layer is added.","description":"src/http/handlers/echo.ts:5","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/handlers/echo.ts|Document this endpoint in OpenAPI once schema layer is added."},{"id":21,"type":"TODO","title":"Authentication/Authorization middleware (JWT/OAuth/session) with RBAC/ABAC policies.","description":"src/http/middleware.ts:67","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/middleware.ts|Authentication/Authorization middleware (JWT/OAuth/session) with RBAC/ABAC policies."},{"id":22,"type":"TODO","title":"Request validation & sanitization (zod) per route -> 400 with problem+json.","description":"src/http/middleware.ts:68","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/middleware.ts|Request validation & sanitization (zod) per route -> 400 with problem+json."},{"id":23,"type":"TODO","title":"Rate limiting (token bucket/redis) and IP throttling. 429 Too Many Requests.","description":"src/http/middleware.ts:69","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/middleware.ts|Rate limiting (token bucket/redis) and IP throttling. 429 Too Many Requests."},{"id":24,"type":"TODO","title":"Monitoring/metrics (OpenTelemetry), structured logs with requestId tracing.","description":"src/http/middleware.ts:70","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/middleware.ts|Monitoring/metrics (OpenTelemetry), structured logs with requestId tracing."},{"id":25,"type":"TODO","title":"Security: add CSP, CSRF protection (for stateful flows), and HSTS.","description":"src/http/middleware.ts:71","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/middleware.ts|Security: add CSP, CSRF protection (for stateful flows), and HSTS."},{"id":26,"type":"TODO","title":"CORS: per-environment policy and preflight caching (Access-Control-Max-Age).","description":"src/http/middleware.ts:72","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/middleware.ts|CORS: per-environment policy and preflight caching (Access-Control-Max-Age)."},{"id":27,"type":"TODO","title":"Request/response middleware pipeline with typed context augmentation.","description":"src/http/middleware.ts:73","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/middleware.ts|Request/response middleware pipeline with typed context augmentation."},{"id":28,"type":"TODO","title":"Standardize error format with problem+json (RFC 7807) and error codes/enums.","description":"src/http/response.ts:34","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/response.ts|Standardize error format with problem+json (RFC 7807) and error codes/enums."},{"id":29,"type":"TODO","title":"Add content negotiation for XML/Protobuf/etc. if needed.","description":"src/http/response.ts:35","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/response.ts|Add content negotiation for XML/Protobuf/etc. if needed."},{"id":30,"type":"TODO","title":"Add path params (e.g., /users/:id) with fast pattern matching and param extraction.","description":"src/http/router.ts:22","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/router.ts|Add path params (e.g., /users/:id) with fast pattern matching and param extraction."},{"id":31,"type":"TODO","title":"Add route-level middleware and input/output schema validation.","description":"src/http/router.ts:23","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/router.ts|Add route-level middleware and input/output schema validation."},{"id":32,"type":"TODO","title":"Generate OpenAPI (and docs site) from route schemas and metadata.","description":"src/http/router.ts:24","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/router.ts|Generate OpenAPI (and docs site) from route schemas and metadata."},{"id":33,"type":"TODO","title":"Add automatic HEAD handling for GET routes and 405 Method Not Allowed support.","description":"src/http/router.ts:25","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/router.ts|Add automatic HEAD handling for GET routes and 405 Method Not Allowed support."},{"id":34,"type":"TODO","title":"add path params when router supports it","description":"src/http/types.ts:16","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/types.ts|add path params when router supports it"},{"id":35,"type":"TODO","title":"Typed context augmentation after middleware (e.g., ctx.user after auth, ctx.body after validation).","description":"src/http/types.ts:22","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/http/types.ts|Typed context augmentation after middleware (e.g., ctx.user after auth, ctx.body after validation)."},{"id":36,"type":"TODO","title":"Add unit tests for Result utilities (ok/err/map/flatMap/mapError/fromPromise).","description":"src/lib/result.ts:35","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/lib/result.ts|Add unit tests for Result utilities (ok/err/map/flatMap/mapError/fromPromise)."},{"id":37,"type":"TODO","title":"Consider adding Result helpers: tap, fold, and async variants.","description":"src/lib/result.ts:36","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/lib/result.ts|Consider adding Result helpers: tap, fold, and async variants."},{"id":38,"type":"TODO","title":"Implement adapters for Postgres/SQLite (connection pooling, migrations, retries).","description":"src/ports/database.ts:4","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/ports/database.ts|Implement adapters for Postgres/SQLite (connection pooling, migrations, retries)."},{"id":39,"type":"TODO","title":"Add transaction support with function-scoped unit of work.","description":"src/ports/database.ts:5","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/ports/database.ts|Add transaction support with function-scoped unit of work."},{"id":40,"type":"TODO","title":"Add transactional wrapper: transaction<T>(fn: (db: Database) => Promise<Result<T, DatabaseError>>)","description":"src/ports/database.ts:14","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|src/ports/database.ts|Add transactional wrapper: transaction<T>(fn: (db: Database) => Promise<Result<T, DatabaseError>>)"},{"id":41,"type":"TODO","title":"Replace with structured logging (JSON) and correlation IDs (requestId) for tracing.","description":"adapters/console-logger.ts:10","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|adapters/console-logger.ts|Replace with structured logging (JSON) and correlation IDs (requestId) for tracing."},{"id":42,"type":"TODO","title":"Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling.","description":"adapters/console-logger.ts:11","status":"active","created_at":"2025-09-09 17:34:11","completed_at":null,"priority":3,"tags":null,"source_key":"TODO|adapters/console-logger.ts|Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling."}];
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+    const state = {
+      search: '',
+      types: new Set(['TODO','BUG']),
+      statuses: new Set(['active']),
+      highOnly: false,
+      sort: 'created', // created|completed|priority|type
+    };
+
+    const searchBox = $('#search');
+    const highOnly = $('#high-only');
+    const sortSel = $('#sort');
+    const listEl = $('#rows');
+
+    function updateStats(items){
+      const a = items.filter(e => e.status === 'active').length;
+      const c = items.filter(e => e.status === 'completed').length;
+      $('#stat-total').textContent = items.length;
+      $('#stat-active').textContent = a;
+      $('#stat-completed').textContent = c;
+      $('#stat-todo').textContent = items.filter(e => e.type==='TODO').length;
+      $('#stat-bug').textContent = items.filter(e => e.type==='BUG').length;
+    }
+
+    function applyFilters(){
+      const q = state.search.toLowerCase();
+      let out = entries.filter(e => state.types.has(e.type) && state.statuses.has(e.status));
+      if (state.highOnly) out = out.filter(e => (e.priority ?? 3) >= 4);
+      if (q) out = out.filter(e => (e.title+ ' ' + (e.description||'')).toLowerCase().includes(q));
+
+      // sort
+      out.sort((a,b) => {
+        if (state.sort === 'priority') return (b.priority??0)-(a.priority??0) || b.created_at.localeCompare(a.created_at);
+        if (state.sort === 'completed') return (b.completed_at||'').localeCompare(a.completed_at||'') || b.created_at.localeCompare(a.created_at);
+        if (state.sort === 'type') return a.type.localeCompare(b.type) || b.created_at.localeCompare(a.created_at);
+        return b.created_at.localeCompare(a.created_at);
+      });
+      return out;
+    }
+
+    function render(){
+      const items = applyFilters();
+      listEl.innerHTML = '';
+      for (const e of items) listEl.appendChild(row(e));
+      updateStats(items);
+      $('#count').textContent = String(items.length);
+      $('#lastUpdated').textContent = new Date().toLocaleString();
+    }
+
+    function row(e){
+      const row = document.createElement('div');
+      row.className = 'row';
+
+      const bullet = document.createElement('div');
+      bullet.className = 'bullet';
+      bullet.textContent = '•';
+
+      const item = document.createElement('div');
+      item.className = 'item';
+
+      const head = document.createElement('div');
+      head.className = 'head';
+      head.innerHTML = '<span class="badge-type '+e.type.toLowerCase()+'">'+e.type+'</span>'+
+                       '<div class="title">'+escapeHtml(e.title)+'</div>';
+
+      const sub = document.createElement('div');
+      sub.className = 'sub';
+      if (e.description) sub.innerHTML += '<span class="path">'+escapeHtml(e.description)+'</span>';
+      sub.innerHTML += '<span class="pill">'+e.status+'</span>'+
+                       '<span class="meta">p'+(e.priority??3)+'</span>'+
+                       '<span class="meta">'+e.created_at+(e.completed_at? ' → '+e.completed_at : '')+'</span>';
+
+      item.appendChild(head);
+      item.appendChild(sub);
+      row.appendChild(bullet);
+      row.appendChild(item);
+      return row;
+    }
+
+    // Build filters
+    for (const id of ['type-TODO','type-BUG']) {
+      $('#'+id).addEventListener('change', () => {
+        const type = id.split('-')[1];
+        const el = $('#'+id);
+        if (el.checked) state.types.add(type); else state.types.delete(type);
+        render();
+      });
+    }
+    for (const id of ['status-active','status-completed','status-cancelled']) {
+      $('#'+id).addEventListener('change', () => {
+        const st = id.split('-')[1];
+        const el = $('#'+id);
+        if (el.checked) state.statuses.add(st); else state.statuses.delete(st);
+        render();
+      });
+    }
+    highOnly.addEventListener('change', () => { state.highOnly = highOnly.checked; render(); });
+    sortSel.addEventListener('change', () => { state.sort = sortSel.value; render(); });
+    searchBox.addEventListener('input', () => { state.search = searchBox.value; render(); });
+
+    // Keyboard: / to focus search, Esc to blur
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== searchBox) { e.preventDefault(); searchBox.focus(); }
+      if (e.key === 'Escape') searchBox.blur();
+    });
+
+    // Escape helper in JS context
+    function escapeHtml(s){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+
+    updateStats(entries);
+    render();
+  })();</script>
+  </body></html>

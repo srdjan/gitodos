@@ -6,10 +6,13 @@
     "test": "deno test",
     "issues:scan": ".git-bin/git-issues.ts",
     "issues:scan:src": ".git-bin/git-issues.ts --path src --out .git-bin/.bugs",
-    "issues:hook:install": "sh -c 'printf \"%s\\n\" \"#!/bin/sh\" \".git-bin/git-issues.ts --out .git-bin/.issues\" \".git-bin/git-issues.ts --path src --out .git-bin/.bugs\" \".git-bin/issues-web.ts\" > .git/hooks/post-commit && chmod +x .git/hooks/post-commit .git-bin/git-issues.ts .git-bin/issues-web.ts'",
+    "issues:hook:install": "sh -c 'printf \"%s\\n\" \"#!/bin/sh\" \".git-bin/git-issues.ts --out .git-bin/.issues\" \".git-bin/git-issues.ts --path src --out .git-bin/.bugs\" \".git-bin/issues-web.ts\" \"deno run -A .git-bin/issues-sync.ts\" \"deno run -A .git-bin/history-web.ts\" > .git/hooks/post-commit && chmod +x .git/hooks/post-commit .git-bin/git-issues.ts .git-bin/issues-web.ts'",
     "issues:web": "deno run --allow-read --allow-write .git-bin/issues-web.ts",
     "issues:web:open": "deno run --allow-read --allow-run .git-bin/open-html.ts",
     "issues:watch": "deno run -A --watch=. .git-bin/issues-watch.ts",
+    "db:sync": "deno run -A .git-bin/issues-sync.ts",
+    "site:history": "deno run -A .git-bin/history-web.ts",
+    "site:history:open": "deno run --allow-read --allow-run .git-bin/open-history.ts",
     "release": "deno run -A .git-bin/release.ts"
   },
   "imports": {

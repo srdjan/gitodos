@@ -32,7 +32,7 @@ type Config = {
 };
 
 const defaultConfig: Config = {
-  ignore: ["vendor/", "node_modules/", "dist/", ".git/", "*.min.js"],
+  ignore: ["vendor/", "node_modules/", "dist/", ".git/", "*.min.js", "*.md"],
   contextLines: 0,
 };
 

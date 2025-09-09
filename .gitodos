@@ -3,7 +3,7 @@
 
 # Patterns to ignore (comma-separated)
 # Supports: directory/ for directories, *.ext for extensions, or exact matches
-ignore=vendor/,node_modules/,dist/,.git/,.git-bin/,*.min.js,*.map
+ignore=vendor/,node_modules/,dist/,.git/,.git-bin/,*.min.js,*.map,*.md
 
 # Number of context lines to show around issues (not yet implemented)
 context_lines=0
