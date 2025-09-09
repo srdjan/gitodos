@@ -6,9 +6,7 @@ import { TodoDB } from "./todo-db.ts";
 
 const OUT = ".git-bin/history.html";
 
-function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
+// No server-side escaping needed; client JS handles HTML escaping.
 
 function render(db: TodoDB): string {
   const all = db.getAll(2000, 0);

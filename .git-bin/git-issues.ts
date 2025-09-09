@@ -103,8 +103,6 @@ const skipWs = (s: string, i: number) => {
   return i;
 };
 
-const startsWithAt = (s: string, i: number, prefix: string) =>
-  s.slice(i, i + prefix.length).toLowerCase() === prefix.toLowerCase();
 
 type Meta = { cleanMsg: string; owner?: string; date?: string; category?: string; id?: string };
 

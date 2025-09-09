@@ -133,7 +133,6 @@ const escapeHtml = (s: string) =>
 
 const buildHtml = (issues: Issue[]): string => {
   const generatedAt = new Date().toISOString();
-  const tags = Array.from(new Set(issues.map((i) => i.tag))).sort();
   const dataJson = JSON.stringify(issues);
 
   const css =
@@ -343,8 +342,6 @@ const buildHtml = (issues: Issue[]): string => {
     updateStats();
     render();
   })();`;
-
-  const summary = `${issues.length} item${issues.length === 1 ? "" : "s"}`;
 
   return `<!doctype html>
 <html lang="en">

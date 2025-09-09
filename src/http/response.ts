@@ -1,4 +1,3 @@
-import type { RequestContext } from "./types.ts";
 
 export type ApiResponse<T> =
   | { readonly success: true; readonly data: T }
@@ -34,4 +33,3 @@ export const noContent = (headers?: HeadersInit): Response =>
 // TODO: Standardize error format with problem+json (RFC 7807) and error codes/enums.
 // TODO: Add content negotiation for XML/Protobuf/etc. if needed.
 // Note: Keep response helpers pure and side-effect free.
-

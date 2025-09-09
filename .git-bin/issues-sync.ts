@@ -28,16 +28,29 @@ async function ensureSnapshots() {
   }
 }
 
-async function loadJson(path: string): Promise<any[]> {
+type SnapshotEntry = {
+  ts: string;
+  file: string;
+  line: number;
+  tag: string;
+  message: string;
+  priority: "high" | "normal";
+  owner?: string;
+  date?: string;
+  category?: string;
+  id?: string;
+};
+
+async function loadJson(path: string): Promise<SnapshotEntry[]> {
   try {
     const txt = await Deno.readTextFile(path);
-    return JSON.parse(txt);
+    return JSON.parse(txt) as SnapshotEntry[];
   } catch {
     return [];
   }
 }
 
-function toScanItem(row: any): ScanItem | null {
+function toScanItem(row: SnapshotEntry): ScanItem | null {
   const tag = String(row.tag ?? "").toUpperCase();
   if (tag !== "TODO" && tag !== "BUG") return null;
   const message = String(row.message ?? "");
@@ -66,4 +79,3 @@ async function main() {
 if (import.meta.main) {
   await main();
 }
-
