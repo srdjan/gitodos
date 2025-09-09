@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Repository Overview
 
 **gitodos** is a dual-purpose Deno TypeScript project:
-1. **Inline issue tracker**: Scans code comments (TODO, BUG, FIXME, etc.) and generates reports
+1. **Inline issue tracker**: Scans code comments (TODO, BUG) and generates reports
 2. **Minimal HTTP server framework**: Production-ready server with functional programming patterns
 
 ## Technology Stack
@@ -28,8 +28,9 @@ deno task server:start    # Run production server
 deno task issues:scan          # Scan entire repository for issues
 deno task issues:scan:src      # Scan src/ for TODO/BUG only
 deno task issues:web           # Generate HTML dashboard
-deno task issues:web:open      # Build and open dashboard (macOS)
+deno task issues:web:open      # Build and open dashboard (cross-platform)
 deno task issues:hook:install  # Install git post-commit hook
+deno task issues:watch         # Live scan + regenerate dashboard on change
 ```
 
 ### Testing & Quality
@@ -121,7 +122,7 @@ The codebase contains numerous TODO comments indicating planned enhancements:
 ## Issue Tracking System
 
 ### How It Works
-1. Scans code for markers: `TODO:`, `BUG:`, `FIXME:`, `XXX:`, `HACK:`
+1. Scans code for markers: `TODO:` and `BUG:` (only)
 2. Generates timestamped snapshots in `.git-bin/`
 3. Creates HTML dashboard with filtering/sorting
 4. Can be integrated as git post-commit hook
@@ -130,6 +131,11 @@ The codebase contains numerous TODO comments indicating planned enhancements:
 - `.git-bin/.issues`: Full repository scan
 - `.git-bin/.bugs`: src/ directory TODO/BUG only
 - `.git-bin/issues.html`: Interactive dashboard
+ - `.git-bin/issues.json` and `.git-bin/bugs.json`: JSON snapshots for tooling/CI
+
+### Priority Model
+- `TODO!:` or `BUG!:` → high priority
+- `TODO:` or `BUG:` → normal priority
 
 ## Common Development Tasks
 

@@ -7,13 +7,13 @@
  * - No dependencies; produces a single self-contained HTML file
  */
 
-type Priority = "critical" | "high" | "normal" | "low";
+type Priority = "high" | "normal";
 
 type Issue = {
   readonly ts: string; // timestamp for the line (or snapshot time if not present)
   readonly file: string;
   readonly line: number;
-  readonly tag: string; // uppercased (TODO/BUG/FIXME/...)
+  readonly tag: string; // uppercased (TODO/BUG)
   readonly message: string;
   readonly priority: Priority;
   readonly owner?: string;
@@ -43,7 +43,7 @@ const readMaybe = async (p: string): Promise<string | null> =>
 const parseHeaderSnapshotTime = (text: string): string | null => {
   // Matches: "# Inline-issue snapshot 2025-09-08 18:56:41"
   const m = text.match(/#\s*Inline-issue\s+snapshot\s+([0-9\-]{10}\s+[0-9:]{8})/);
-  return m ? m[1] : null;
+  return m && m[1] ? m[1] : null;
 };
 
 const parseLines = (text: string, source: string): Issue[] => {
@@ -76,21 +76,32 @@ const parseLines = (text: string, source: string): Issue[] => {
     // Check if we have the new format with priority
     if (parts.length >= 9) {
       // New format with all metadata
-      [ts, pathLine, tag, priority, owner, date, category, id, ...message] = parts;
-      message = message.join("  ");
+      ts = parts[0]!;
+      pathLine = parts[1]!;
+      tag = parts[2]!;
+      const pr = parts[3]!;
+      priority = (pr === "high" ? "high" : "normal");
+      owner = parts[4]!;
+      date = parts[5]!;
+      category = parts[6]!;
+      id = parts[7]!;
+      message = parts.slice(8).join("  ");
       if (owner === "-") owner = undefined;
       if (date === "-") date = undefined;
       if (category === "-") category = undefined;
       if (id === "-") id = undefined;
-    } else if (parts.length >= 4 && /^\d{4}-\d{2}-\d{2}/.test(parts[0])) {
+    } else if (parts.length >= 4 && /^\d{4}-\d{2}-\d{2}/.test(parts[0]!)) {
       // Old format with timestamp
-      [ts, pathLine, tag, ...message] = parts;
-      message = message.join("  ");
+      ts = parts[0]!;
+      pathLine = parts[1]!;
+      tag = parts[2]!;
+      message = parts.slice(3).join("  ");
     } else {
       // Legacy format without timestamp
       ts = snapshotTs;
-      [pathLine, tag, ...message] = parts;
-      message = message.join("  ");
+      pathLine = parts[0]!;
+      tag = parts[1]!;
+      message = parts.slice(2).join("  ");
     }
 
     const idx = pathLine.lastIndexOf(":");
@@ -126,7 +137,7 @@ const buildHtml = (issues: Issue[]): string => {
   const dataJson = JSON.stringify(issues);
 
   const css =
-    `:root{--bg:#0b1020;--bg-card:#121a33;--fg:#e7ecff;--muted:#aab3d1;--acc:#5b8cff;--ok:#28c386;--warn:#ffb020;--bad:#ff5c77;--critical:#ff1744;--high:#ff9800;--normal:#4caf50;--low:#9e9e9e}
+    `:root{--bg:#0b1020;--bg-card:#121a33;--fg:#e7ecff;--muted:#aab3d1;--acc:#5b8cff;--warn:#ffb020;--bad:#ff5c77;--high:#ff9800;--normal:#4caf50}
   *{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;background:var(--bg);color:var(--fg)}
   header{padding:16px 20px;border-bottom:1px solid #1c274d;background:linear-gradient(180deg,#0c1326,#0b1020)}
   header h1{margin:0;font-size:18px}
@@ -151,13 +162,10 @@ const buildHtml = (issues: Issue[]): string => {
   th{color:var(--muted);text-align:left;font-weight:600;font-size:12px;text-transform:uppercase}
   tr:hover td{background:#0f1833}
   .priority{width:8px;padding:0;background:var(--normal)}
-  .priority[data-priority="critical"]{background:var(--critical)}
   .priority[data-priority="high"]{background:var(--high)}
-  .priority[data-priority="low"]{background:var(--low)}
   .tag{font-weight:700;font-size:11px;padding:2px 6px;border-radius:3px;background:#1a2040}
-  .tag[data-tag="BUG"], .tag[data-tag="FIXME"], .tag[data-tag="HACK"]{color:var(--bad);background:#3a1020}
+  .tag[data-tag="BUG"]{color:var(--bad);background:#3a1020}
   .tag[data-tag="TODO"]{color:var(--warn);background:#3a2510}
-  .tag[data-tag="DONE"], .tag[data-tag="RESOLVED"]{color:var(--ok);background:#1a3020;text-decoration:line-through}
   .file{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;color:#c7d2fe;font-size:12px}
   .line-num{color:var(--muted);font-size:11px}
   .msg{white-space:pre-wrap;font-size:13px}
@@ -179,18 +187,17 @@ const buildHtml = (issues: Issue[]): string => {
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
     const tags = Array.from(new Set(entries.map(e => e.tag))).sort();
-    const priorityOrder = { critical: 0, high: 1, normal: 2, low: 3 };
+    const priorityOrder = { high: 0, normal: 1 };
 
     // Stats
     function updateStats() {
       const byTag = {};
-      const byPriority = { critical: 0, high: 0, normal: 0, low: 0 };
+      const byPriority = { high: 0, normal: 0 };
       entries.forEach(e => {
         byTag[e.tag] = (byTag[e.tag] || 0) + 1;
         byPriority[e.priority] = (byPriority[e.priority] || 0) + 1;
       });
       $('#stat-total').textContent = entries.length;
-      $('#stat-critical').textContent = byPriority.critical;
       $('#stat-high').textContent = byPriority.high;
       $('#stat-todo').textContent = byTag.TODO || 0;
       $('#stat-bug').textContent = byTag.BUG || 0;
@@ -359,10 +366,6 @@ const buildHtml = (issues: Issue[]): string => {
     <div class="stat-card">
       <div class="stat-value" id="stat-total">${issues.length}</div>
       <div class="stat-label">Total Issues</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="stat-critical" style="color:var(--critical)">0</div>
-      <div class="stat-label">Critical</div>
     </div>
     <div class="stat-card">
       <div class="stat-value" id="stat-high" style="color:var(--high)">0</div>

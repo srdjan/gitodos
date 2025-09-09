@@ -4,3 +4,6 @@
 .git-bin/.bugs
 .git-bin/.issues
 .git-bin/issues.html
+.git-bin/bugs.json
+.git-bin/issues.json
+dist/

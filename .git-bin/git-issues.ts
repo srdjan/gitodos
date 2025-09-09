@@ -1,28 +1,39 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-run
 
 /**
- * Inline-issue collector
+ * Inline-issue collector (simplified)
  * Usage:
- *   ./git-issues.ts [--path PATH] [--tag TAG,TAG…] [--out FILE]
- * Defaults: path='.', tag='TODO,BUG,FIXME,XXX,HACK', out='.git-bin/.issues'
+ *   ./git-issues.ts [--path PATH] [--out FILE]
+ * Defaults: path='.', out='.git-bin/.issues'
+ *
+ * Rules:
+ * - Only tags: TODO, BUG
+ * - Priority marker: optional single '!' before colon (e.g., TODO!:)
  */
 
-import { parseArgs } from "https://deno.land/std@0.208.0/cli/parse_args.ts";
+// Minimal CLI arg parser (avoid external deps)
+type Cli = { path?: string; out?: string; _: string[] };
+const parseCli = (args: string[]): Cli => {
+  const out: Cli = { _: [] };
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (a === "--path" || a === "-p") { out.path = args[++i]; continue; }
+    if (a === "--out" || a === "-o") { out.out = args[++i]; continue; }
+    out._.push(a);
+  }
+  return out;
+};
 
 /* ---------- config ---------- */
 type Config = {
-  tags: string[];
   ignore: string[];
   contextLines: number;
   maxAgeDays?: number;
-  includeResolved: boolean;
 };
 
 const defaultConfig: Config = {
-  tags: ["TODO", "BUG", "FIXME", "XXX", "HACK", "NOTE", "QUESTION"],
   ignore: ["vendor/", "node_modules/", "dist/", ".git/", "*.min.js"],
   contextLines: 0,
-  includeResolved: false,
 };
 
 async function loadConfig(): Promise<Config> {
@@ -34,13 +45,11 @@ async function loadConfig(): Promise<Config> {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) continue;
       
-      const [key, ...valueParts] = trimmed.split("=");
+      const [k, ...valueParts] = trimmed.split("=");
+      const key = (k ?? "");
       const value = valueParts.join("=").trim();
       
       switch (key.trim()) {
-        case "tags":
-          config.tags = value.split(",").map(s => s.trim());
-          break;
         case "ignore":
           config.ignore = value.split(",").map(s => s.trim());
           break;
@@ -49,9 +58,6 @@ async function loadConfig(): Promise<Config> {
           break;
         case "max_age_days":
           config.maxAgeDays = parseInt(value) || undefined;
-          break;
-        case "include_resolved":
-          config.includeResolved = value.toLowerCase() === "true";
           break;
       }
     }
@@ -65,9 +71,7 @@ async function loadConfig(): Promise<Config> {
 /* ---------- pure helpers ---------- */
 const now = () => new Date().toISOString().slice(0, 19).replace("T", " ");
 
-const buildRegex = (tags: string[]) => new RegExp(`\\b(${tags.join("|")})\\b(!!?|\\?)?:\\s*(.+)`, "i");
-
-type Priority = "critical" | "high" | "normal" | "low";
+type Priority = "high" | "normal";
 type Issue = { 
   file: string; 
   ln: number; 
@@ -80,80 +84,158 @@ type Issue = {
   id?: string;
 };
 
-const extractMetadata = (msg: string): { 
-  cleanMsg: string; 
-  owner?: string; 
-  date?: string; 
-  category?: string;
-  id?: string;
-} => {
-  let cleanMsg = msg;
+// Basic char helpers
+const isWord = (c: string) => {
+  const code = c.charCodeAt(0);
+  return (code >= 48 && code <= 57) // 0-9
+    || (code >= 65 && code <= 90)   // A-Z
+    || (code >= 97 && code <= 122)  // a-z
+    || c === "_";
+};
+
+const skipWs = (s: string, i: number) => {
+  while (i < s.length && (s[i] === " " || s[i] === "\t")) i++;
+  return i;
+};
+
+const startsWithAt = (s: string, i: number, prefix: string) =>
+  s.slice(i, i + prefix.length).toLowerCase() === prefix.toLowerCase();
+
+type Meta = { cleanMsg: string; owner?: string; date?: string; category?: string; id?: string };
+
+const extractMetadata = (msg: string): Meta => {
+  let i = 0;
+  const n = msg.length;
   let owner: string | undefined;
   let date: string | undefined;
   let category: string | undefined;
   let id: string | undefined;
 
-  // Extract owner @username
-  const ownerMatch = msg.match(/^@(\w+)\s*:?\s*/);
-  if (ownerMatch) {
-    owner = ownerMatch[1];
-    cleanMsg = cleanMsg.slice(ownerMatch[0].length);
-  }
-
-  // Extract date [YYYY-MM-DD] or [MMM-DD] or [MMM]
-  const dateMatch = cleanMsg.match(/^\[([^\]]+)\]\s*:?\s*/);
-  if (dateMatch) {
-    date = dateMatch[1];
-    cleanMsg = cleanMsg.slice(dateMatch[0].length);
-  }
-
-  // Extract category [category] (if not already matched as date)
-  if (!date) {
-    const catMatch = cleanMsg.match(/^\[([a-zA-Z]+)\]\s*:?\s*/);
-    if (catMatch) {
-      category = catMatch[1];
-      cleanMsg = cleanMsg.slice(catMatch[0].length);
+  // Owner: @username[:]
+  if (i < n && msg[i] === "@") {
+    i++;
+    const start = i;
+    while (i < n) {
+      const ch = msg[i]!;
+      const code = ch.charCodeAt(0);
+      const ok = (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || ch === "_" || ch === "-";
+      if (!ok) break;
+      i++;
+    }
+    if (i > start) {
+      owner = msg.slice(start, i);
+      if (i < n && msg[i] === ":") i++;
+      i = skipWs(msg, i);
+    } else {
+      i = 0; // reset if not a valid username
     }
   }
 
-  // Extract ID (#123) or (REF-123)
-  const idMatch = cleanMsg.match(/^[(\[]?(#\d+|[A-Z]+-\d+)[)\]]?\s*:?\s*/);
-  if (idMatch) {
-    id = idMatch[1];
-    cleanMsg = cleanMsg.slice(idMatch[0].length);
+  // Helper to read bracket token: [ ... ]
+  const readBracket = (): string | undefined => {
+    if (i < n && msg[i] === "[") {
+      const close = msg.indexOf("]", i + 1);
+      if (close > i) {
+        const content = msg.slice(i + 1, close);
+        i = close + 1;
+        if (i < n && msg[i] === ":") i++;
+        i = skipWs(msg, i);
+        return content;
+      }
+    }
+    return undefined;
+  };
+
+  // Date or category from first bracket
+  const firstBracket = readBracket();
+  if (firstBracket !== undefined) {
+    const hasDigit = [...firstBracket].some((c) => c >= "0" && c <= "9") || firstBracket.includes("-");
+    if (hasDigit) date = firstBracket; else category = firstBracket;
   }
 
-  return { cleanMsg: cleanMsg.trim(), owner, date, category, id };
+  // Optional ID: (#123) or (ABC-123) or [#123]
+  const readParenOrBracketId = (): string | undefined => {
+    if (i < n && (msg[i] === "(" || msg[i] === "[")) {
+      const open = msg[i];
+      const closeCh = open === "(" ? ")" : "]";
+      const close = msg.indexOf(closeCh, i + 1);
+      if (close > i) {
+        const content = msg.slice(i + 1, close);
+        // validate simple patterns
+        let valid = false;
+        if (content.startsWith("#")) {
+          valid = content.length > 1 && [...content.slice(1)].every((c) => c >= "0" && c <= "9");
+        } else {
+          const dash = content.indexOf("-");
+          if (dash > 0) {
+            const left = content.slice(0, dash);
+            const right = content.slice(dash + 1);
+            const leftOk = left.length > 0 && [...left].every((c) => c >= "A" && c <= "Z");
+            const rightOk = right.length > 0 && [...right].every((c) => c >= "0" && c <= "9");
+            valid = leftOk && rightOk;
+          }
+        }
+        if (valid) {
+          i = close + 1;
+          if (i < n && msg[i] === ":") i++;
+          i = skipWs(msg, i);
+          return content;
+        }
+      }
+    }
+    return undefined;
+  };
+
+  const maybeId = readParenOrBracketId();
+  if (maybeId) id = maybeId;
+
+  const cleanMsg = msg.slice(i).trim();
+  return { cleanMsg, owner, date, category, id };
 };
 
-const parseLine = (line: string, file: string, ln: number, tags: string[]): Issue | null => {
-  const m = line.match(buildRegex(tags));
-  if (!m) return null;
+const parseLine = (line: string, file: string, ln: number, tags: readonly string[]): Issue | null => {
+  const lower = line.toLowerCase();
+  const tagsLower = tags.map((t) => t.toLowerCase());
 
-  const tag = (m[1] ?? "").toUpperCase();
-  const priorityMarker = m[2] ?? "";
-  const rawMsg = (m[3] ?? "").trim();
+  for (let i = 0; i < lower.length; i++) {
+    // left boundary must not be a word char
+    if (i > 0 && isWord(line[i - 1]!)) continue;
+    for (let ti = 0; ti < tagsLower.length; ti++) {
+      const tLower = tagsLower[ti]!;
+      const tLen = tLower.length;
+      if (lower.slice(i, i + tLen) !== tLower) continue;
+      const j0 = i + tLen; // position after tag
+      // Determine optional priority marker
+      let j = j0;
+      let marker = "";
+      if (j < line.length && line[j] === "!") { marker = "!"; j += 1; }
+      // Require colon immediately after tag/marker
+      if (j >= line.length || line[j] !== ":") continue;
+      j += 1;
+      // Skip spaces after colon
+      j = skipWs(line, j);
+      const rawMsg = line.slice(j).trim();
 
-  // Determine priority based on marker
-  let priority: Priority = "normal";
-  if (priorityMarker === "!!") priority = "critical";
-  else if (priorityMarker === "!") priority = "high";
-  else if (priorityMarker === "?") priority = "low";
+      // Determine priority from marker
+      let priority: Priority = "normal";
+      if (marker === "!") priority = "high";
 
-  // Extract metadata from message
-  const { cleanMsg, owner, date, category, id } = extractMetadata(rawMsg);
-
-  return { 
-    file, 
-    ln, 
-    tag, 
-    msg: cleanMsg,
-    priority,
-    ...(owner && { owner }),
-    ...(date && { date }),
-    ...(category && { category }),
-    ...(id && { id })
-  };
+      const { cleanMsg, owner, date, category, id } = extractMetadata(rawMsg);
+      const tag = tags[ti]!.toUpperCase();
+      return {
+        file,
+        ln,
+        tag,
+        msg: cleanMsg,
+        priority,
+        ...(owner && { owner }),
+        ...(date && { date }),
+        ...(category && { category }),
+        ...(id && { id }),
+      };
+    }
+  }
+  return null;
 };
 
 /* ---------- git + grep ---------- */
@@ -175,7 +257,7 @@ function shouldIgnore(file: string, ignorePatterns: string[]): boolean {
   return false;
 }
 
-async function* grepFiles(root: string, tags: string[], ignorePatterns: string[]) {
+async function* grepFiles(root: string, tags: readonly string[], ignorePatterns: string[]) {
   const cmd = [
     "-C",
     root,
@@ -213,24 +295,13 @@ async function* grepFiles(root: string, tags: string[], ignorePatterns: string[]
 /* ---------- cli ---------- */
 const config = await loadConfig();
 
-const argv = parseArgs(Deno.args, {
-  string: ["path", "tag", "out"],
-  boolean: ["include-resolved"],
-  default: {
-    path: ".",
-    tag: config.tags.join(","),
-    out: ".git-bin/.issues",
-    "include-resolved": config.includeResolved,
-  },
-  alias: { p: "path", t: "tag", o: "out", r: "include-resolved" },
-});
+const cli = parseCli(Deno.args);
+const argv = {
+  path: cli.path ?? ".",
+  out: cli.out ?? ".git-bin/.issues",
+};
 
-const tags = argv.tag.split(",").map((s) => s.trim());
-// Add resolved tags if requested
-if (argv["include-resolved"]) {
-  if (!tags.includes("DONE")) tags.push("DONE");
-  if (!tags.includes("RESOLVED")) tags.push("RESOLVED");
-}
+const tags = ["TODO", "BUG"] as const;
 
 const header = [
   `# Inline-issue snapshot ${now()}`,
@@ -251,7 +322,7 @@ const col6w = Math.max("category".length, ...issues.map((i) => (i.category ?? "-
 const col7w = Math.max("id".length, ...issues.map((i) => (i.id ?? "-").length));
 
 // Sort by priority first (critical > high > normal > low), then by file/line
-const priorityOrder = { critical: 0, high: 1, normal: 2, low: 3 };
+const priorityOrder = { high: 0, normal: 1 } as const;
 const lines = issues
   .sort((a, b) => {
     const prioCmp = priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -263,4 +334,36 @@ const lines = issues
 
 const out = header + lines.join("\n") + "\n";
 await Deno.writeTextFile(argv.out, out);
-console.error(`Found ${issues.length} issues → ${argv.out}`);
+
+// Also emit JSON alongside text output for tooling/CI
+try {
+  const outPath = String(argv.out);
+  const slash = outPath.lastIndexOf("/");
+  const dir = slash >= 0 ? outPath.slice(0, slash) : ".";
+  const base = slash >= 0 ? outPath.slice(slash + 1) : outPath;
+  let jsonName: string;
+  if (base === ".issues") jsonName = "issues.json";
+  else if (base === ".bugs") jsonName = "bugs.json";
+  else if (base.startsWith(".")) jsonName = `${base.slice(1)}.json`;
+  else jsonName = `${base}.json`;
+  const jsonPath = `${dir}/${jsonName}`;
+
+  const jsonEntries = issues.map((i) => ({
+    ts,
+    file: i.file,
+    line: i.ln,
+    tag: i.tag,
+    message: i.msg,
+    priority: i.priority,
+    ...(i.owner ? { owner: i.owner } : {}),
+    ...(i.date ? { date: i.date } : {}),
+    ...(i.category ? { category: i.category } : {}),
+    ...(i.id ? { id: i.id } : {}),
+  }));
+
+  await Deno.writeTextFile(jsonPath, JSON.stringify(jsonEntries, null, 2) + "\n");
+  console.error(`Found ${issues.length} issues → ${argv.out} (+ ${jsonPath})`);
+} catch (e) {
+  console.error("Failed to write JSON output:", e instanceof Error ? e.message : String(e));
+  console.error(`Found ${issues.length} issues → ${argv.out}`);
+}

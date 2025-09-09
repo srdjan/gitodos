@@ -17,19 +17,18 @@ recognizable tags (e.g., `// TODO: …`, `# BUG: …`).
 
 ## Conventions (What gets picked up)
 
-A line is collected when it contains a tag followed by a colon and some text:
+A line is collected when it contains a supported tag followed by a colon and some text:
 
 - `// TODO: message here`
 - `# BUG: message here`
-- `/* FIXME: message here */`
 
-### Priority Markers (NEW!)
+Only the tags `TODO` and `BUG` are supported. `FIXME` and other tags are intentionally ignored.
 
-Add priority markers to your issues:
-- `TODO!!:` - Critical priority (shown in red)
-- `TODO!:` - High priority (shown in orange)
-- `TODO:` - Normal priority (default)
-- `TODO?:` - Low priority (shown in gray)
+### Priority Markers
+
+Use a single `!` before the colon to mark high priority:
+- `TODO!:` or `BUG!:` — High priority
+- `TODO:` or `BUG:` — Normal priority
 
 ### Metadata Extraction (NEW!)
 
@@ -43,14 +42,7 @@ Combine multiple metadata: `TODO!!: @alice: [2025-01-10] Deploy hotfix`
 
 ### Default Tags
 
-- `TODO, BUG, FIXME, XXX, HACK, NOTE, QUESTION`
-- `DONE, RESOLVED` (when using `--include-resolved` flag)
-
-You can customize tags via `--tag` (comma‑separated) or `.gitodos` config file:
-
-```
-.git-bin/git-issues.ts --tag TODO,BUG
-```
+- `TODO, BUG`
 
 ## Outputs
 
@@ -59,7 +51,7 @@ Each generated file contains a header with the snapshot time and aligned columns
 - `timestamp` — when the snapshot was generated
 - `path:line` — file path relative to repo + line number
 - `tag` — the matched tag
-- `priority` — priority level (critical/high/normal/low)
+- `priority` — priority level (high/normal)
 - `owner` — assigned person (if specified)
 - `date` — due date or date marker (if specified)
 - `category` — category/module (if specified)
@@ -71,9 +63,13 @@ Example excerpt:
 ```
 # Inline-issue snapshot 2025-09-08 19:47:06
 # Columns:  timestamp  path:line  tag  priority  owner  date  category  id  message
-2025-09-08 19:47:06  test.md:22  TODO  critical  alice  2025-01-10  -  -  Deploy hotfix for payment processing
+2025-09-08 19:47:06  test.md:22  TODO  high      alice  2025-01-10  -  -  Deploy hotfix for payment processing
 2025-09-08 19:47:06  api.ts:14   BUG   high      -      -           api  #99  Rate limiting not working correctly
 ```
+
+JSON outputs are also generated alongside the text snapshots for tooling/CI:
+
+- `.git-bin/issues.json` and `.git-bin/bugs.json` — array of entries: `{ ts, file, line, tag, message, priority, owner?, date?, category?, id? }`.
 
 ## HTML Dashboard (Static)
 
@@ -97,16 +93,17 @@ Usage:
 # Build the HTML from .issues and .bugs
 deno task issues:web
 
-# macOS convenience: build and open
+# Build (if needed) and open (cross-platform)
 deno task issues:web:open
+
+# Live mode: rescan and rebuild on any change
+deno task issues:watch
 ```
 
 Notes:
 
-- If you’re on Linux or Windows, open the file manually (or use `xdg-open .git-bin/issues.html` on
-  Linux, `start .git-bin\issues.html` on Windows).
-- If the page appears empty, run the scan tasks first to generate `.git-bin/.issues` and
-  `.git-bin/.bugs`.
+- `issues:web:open` is cross‑platform and will generate the HTML if missing.
+- If the page appears empty, run a scan first to generate `.git-bin/.issues` and `.git-bin/.bugs`.
 
 ## Tasks (deno.json)
 
@@ -118,17 +115,18 @@ Convenience tasks are provided:
   - `deno task issues:scan:src`
 - Generate HTML dashboard → `.git-bin/issues.html`
   - `deno task issues:web`
-- Build + open dashboard (macOS) → opens in default browser
+- Build + open dashboard (cross‑platform)
   - `deno task issues:web:open`
 - Install a post‑commit hook to update snapshots + HTML automatically
   - `deno task issues:hook:install`
+- Watch and auto‑refresh snapshots + HTML on change
+  - `deno task issues:watch`
 
 If you prefer manual invocation:
 
 ```
 .git-bin/git-issues.ts                # defaults to .git-bin/.issues
-.git-bin/git-issues.ts --path src \
-  --tag TODO,BUG --out .git-bin/.bugs
+.git-bin/git-issues.ts --path src --out .git-bin/.bugs
 ```
 
 ## Git Hook
@@ -139,7 +137,7 @@ snapshots and the HTML dashboard automatically:
 ```
 #!/bin/sh
 .git-bin/git-issues.ts --out .git-bin/.issues
-.git-bin/git-issues.ts --path src --tag TODO,BUG --out .git-bin/.bugs
+.git-bin/git-issues.ts --path src --out .git-bin/.bugs
 .git-bin/issues-web.ts
 ```
 
@@ -149,37 +147,29 @@ Notes:
 - You can open the HTML afterwards with `deno task issues:web:open` (macOS) or by opening
   `.git-bin/issues.html` directly.
 
-## Configuration File (NEW!)
+## Configuration File
 
 Create a `.gitodos` file in your repository root to configure defaults:
 
 ```ini
 # .gitodos configuration file
 
-# Tags to scan for (comma-separated)
-tags=TODO,BUG,FIXME,XXX,HACK,NOTE,QUESTION
-
 # Patterns to ignore (comma-separated)
 # Supports: directory/ for directories, *.ext for extensions
 ignore=vendor/,node_modules/,dist/,.git/,*.min.js
 
-# Include resolved issues (DONE, RESOLVED) in scans
-include_resolved=false
-
 # Future: Number of context lines around issues
-# context_lines=1
+# context_lines=0
 ```
 
 ## Customization
 
-Command-line options override configuration file settings:
+Command-line options:
 
 - Path scope: `--path <dir>` (default: `.`)
-- Tags: `--tag TAG1,TAG2` (overrides config)
 - Output file: `--out <file>` (default: `.git-bin/.issues`)
-- Include resolved: `--include-resolved` (includes DONE/RESOLVED tags)
 
-You can add more tasks in `deno.json` if you frequently use custom combinations.
+You can add more tasks in `deno.json` for frequently used combinations.
 
 ## Tips
 
@@ -196,20 +186,26 @@ You can add more tasks in `deno.json` if you frequently use custom combinations.
 - The per‑line `timestamp` reflects when the snapshot was taken, not when a comment was added.
 - Only files listed by `git ls-files --cached --others --exclude-standard` are scanned; ignored
   files (per `.gitignore`) are skipped by design.
+- Minimal, non‑regex parser by design: only `TODO:` and `BUG:` are recognized; a single `!` before
+  the colon marks high priority (e.g., `TODO!:`). Metadata (`@owner`, `[date|category]`, `(#id)`/`(ABC-123)`) is parsed only at the start of the message if present.
 
 ## Recent Enhancements
 
-✅ **Priority levels** - Critical/High/Normal/Low with visual indicators
+✅ **Priority** - High (`!`) and Normal
 ✅ **Metadata extraction** - Owner, dates, categories, issue IDs
-✅ **Configuration file** - `.gitodos` for project settings
+✅ **Configuration file** - `.gitodos` for ignore patterns
 ✅ **Enhanced dashboard** - Search, stats, grouping, keyboard shortcuts
 ✅ **Smart sorting** - Priority-first ordering
+✅ **JSON outputs** - `.git-bin/issues.json` and `.git-bin/bugs.json`
+✅ **Watch mode** - `deno task issues:watch` regenerates snapshots + HTML on change
+✅ **Cross‑platform open** - `deno task issues:web:open` works on macOS/Linux/Windows
+✅ **Minimal parser** - Replaced regex with a tiny hand‑rolled parser
 
 ## Roadmap ideas
 
 - Context lines - Show code around issues
 - Issue age tracking - Using git blame
-- Thresholds for CI - Fail build if critical issues exist
+- Thresholds for CI - Fail build if high-priority issues exist
 - Export formats - JSON/CSV/Markdown reports
 - VSCode integration - Quick navigation to issues
 - Duplicate detection - Find similar issues
