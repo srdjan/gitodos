@@ -29,11 +29,13 @@ type Config = {
   ignore: string[];
   contextLines: number;
   maxAgeDays?: number;
+  comments: string[]; // allowed comment styles: slash, block, hash, html
 };
 
 const defaultConfig: Config = {
-  ignore: ["vendor/", "node_modules/", "dist/", ".git/", "*.min.js", "*.md"],
+  ignore: ["vendor/", "node_modules/", "dist/", ".git/", "*.min.js"],
   contextLines: 0,
+  comments: ["slash", "block", "hash", "html"],
 };
 
 async function loadConfig(): Promise<Config> {
@@ -58,6 +60,9 @@ async function loadConfig(): Promise<Config> {
           break;
         case "max_age_days":
           config.maxAgeDays = parseInt(value) || undefined;
+          break;
+        case "comments":
+          config.comments = value.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
           break;
       }
     }
@@ -209,9 +214,11 @@ const parseLine = (line: string, file: string, ln: number, tags: readonly string
       let j = j0;
       let marker = "";
       if (j < line.length && line[j] === "!") { marker = "!"; j += 1; }
-      // Require colon immediately after tag/marker
-      if (j >= line.length || line[j] !== ":") continue;
-      j += 1;
+      // Require colon with optional single space before it
+      if (j >= line.length) continue;
+      if (line[j] === ' ' && j + 1 < line.length && line[j + 1] === ':') j += 2;
+      else if (line[j] === ':') j += 1;
+      else continue;
       // Skip spaces after colon
       j = skipWs(line, j);
       const rawMsg = line.slice(j).trim();
@@ -239,10 +246,49 @@ const parseLine = (line: string, file: string, ln: number, tags: readonly string
 };
 
 // Find comment slice for common languages. Maintains simple block-comment state across lines.
-type BlockState = { inBlock: boolean };
-const commentSlice = (line: string, state: BlockState): string | null => {
+type BlockState = { inBlock: boolean; inHtml?: boolean; inMdFence?: boolean };
+const hasStyle = (styles: readonly string[], s: string) => styles.includes(s);
+
+const commentSlice = (file: string, line: string, state: BlockState, styles: readonly string[]): string | null => {
+  const ext = file.slice(file.lastIndexOf('.') + 1).toLowerCase();
+  // Markdown heuristic: skip fenced code, strip inline code, then scan full line
+  if (ext === 'md') {
+    // Toggle fence
+    const trimmed = line.trim();
+    if (trimmed.startsWith('```')) {
+      state.inMdFence = !state.inMdFence;
+      return null;
+    }
+    if (state.inMdFence) return null;
+    // Remove inline backticks content
+    let out = '';
+    let inInline = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]!;
+      if (ch === '`') { inInline = !inInline; continue; }
+      if (!inInline) out += ch;
+    }
+    return out;
+  }
+
   const s = line;
-  if (state.inBlock) {
+  // HTML comments for .html/.htm (if enabled)
+  if ((ext === 'html' || ext === 'htm') && hasStyle(styles, 'html')) {
+    if (state.inHtml) {
+      const end = s.indexOf("-->");
+      if (end >= 0) { state.inHtml = false; return s.slice(0, end); }
+      return s;
+    }
+    const start = s.indexOf("<!--");
+    if (start >= 0) {
+      const end = s.indexOf("-->", start + 4);
+      if (end >= 0) return s.slice(start + 4, end);
+      state.inHtml = true;
+      return s.slice(start + 4);
+    }
+  }
+
+  if (state.inBlock && hasStyle(styles, 'block')) {
     const end = s.indexOf("*/");
     if (end >= 0) {
       state.inBlock = false;
@@ -252,7 +298,7 @@ const commentSlice = (line: string, state: BlockState): string | null => {
   }
 
   // Line comments: // (avoid http://) and # at start or after whitespace
-  const dbl = s.indexOf("//");
+  const dbl = hasStyle(styles, 'slash') ? s.indexOf("//") : -1;
   let dblValid = -1;
   if (dbl >= 0) {
     // treat as comment if not part of "://"
@@ -260,14 +306,14 @@ const commentSlice = (line: string, state: BlockState): string | null => {
   }
 
   // Block comment start
-  const blk = s.indexOf("/*");
-  const hash = (() => {
+  const blk = hasStyle(styles, 'block') ? s.indexOf("/*") : -1;
+  const hash = hasStyle(styles, 'hash') ? (() => {
     const idx = s.indexOf("#");
     if (idx < 0) return -1;
     // valid if start or preceded by whitespace
     const prev = idx === 0 ? "" : s[idx - 1] ?? "";
     return (idx === 0 || prev === " " || prev === "\t") ? idx : -1;
-  })();
+  })() : -1;
 
   let cut = Number.MAX_SAFE_INTEGER;
   let kind: "//" | "/*" | "#" | null = null;
@@ -279,10 +325,13 @@ const commentSlice = (line: string, state: BlockState): string | null => {
   if (kind === "//") return s.slice(cut + 2);
   if (kind === "#") return s.slice(cut + 1);
   // block comment
-  const end = s.indexOf("*/", cut + 2);
-  if (end >= 0) return s.slice(cut + 2, end);
-  state.inBlock = true;
-  return s.slice(cut + 2);
+  if (hasStyle(styles, 'block')) {
+    const end = s.indexOf("*/", cut + 2);
+    if (end >= 0) return s.slice(cut + 2, end);
+    state.inBlock = true;
+    return s.slice(cut + 2);
+  }
+  return null;
 };
 
 /* ---------- git + grep ---------- */
@@ -304,7 +353,7 @@ function shouldIgnore(file: string, ignorePatterns: string[]): boolean {
   return false;
 }
 
-async function* grepFiles(root: string, tags: readonly string[], ignorePatterns: string[]) {
+async function* grepFiles(root: string, tags: readonly string[], ignorePatterns: string[], styles: readonly string[]) {
   const cmd = [
     "-C",
     root,
@@ -334,7 +383,7 @@ async function* grepFiles(root: string, tags: readonly string[], ignorePatterns:
     const content = await Deno.readTextFile(`${root}/${file}`);
     const state: BlockState = { inBlock: false };
     for (const [idx, line] of content.split("\n").entries()) {
-      const c = commentSlice(line, state);
+      const c = commentSlice(file, line, state, styles);
       if (!c) continue;
       const issue = parseLine(c, file, idx + 1, tags);
       if (issue) yield issue;
@@ -360,7 +409,7 @@ const header = [
 ].join("\n");
 
 const issues: Issue[] = [];
-for await (const it of grepFiles(argv.path, tags, config.ignore)) issues.push(it);
+for await (const it of grepFiles(argv.path, tags, config.ignore, config.comments)) issues.push(it);
 
 const ts = now();
 const col1w = Math.max("path:line".length, ...issues.map((i) => `${i.file}:${i.ln}`.length));

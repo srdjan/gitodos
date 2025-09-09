@@ -4,6 +4,7 @@
     "server:dev": "deno run --allow-net --watch src/main.ts",
     "server:start": "deno run --allow-net src/main.ts",
     "test": "deno test",
+    "release": "deno run -A .git-bin/release.ts",
     "issues:scan": ".git-bin/git-issues.ts",
     "issues:scan:src": ".git-bin/git-issues.ts --path src --out .git-bin/.bugs",
     "issues:hook:install": "sh -c 'printf \"%s\\n\" \"#!/bin/sh\" \".git-bin/git-issues.ts --out .git-bin/.issues\" \".git-bin/git-issues.ts --path src --out .git-bin/.bugs\" \".git-bin/issues-web.ts\" \"deno run -A .git-bin/issues-sync.ts\" \"deno run -A .git-bin/history-web.ts\" > .git/hooks/post-commit && chmod +x .git/hooks/post-commit .git-bin/git-issues.ts .git-bin/issues-web.ts'",
@@ -12,8 +13,7 @@
     "issues:watch": "deno run -A --watch=. .git-bin/issues-watch.ts",
     "issues:sync": "deno run -A .git-bin/issues-sync.ts",
     "issues:history": "deno run -A .git-bin/history-web.ts",
-    "issues:history:open": "deno run --allow-read --allow-run .git-bin/open-history.ts",
-    "release": "deno run -A .git-bin/release.ts"
+    "issues:history:open": "deno run --allow-read --allow-run .git-bin/open-history.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"

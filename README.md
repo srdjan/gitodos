@@ -15,34 +15,15 @@ recognizable tags (e.g., `// TODO: …`, `# BUG: …`).
 - Git available on PATH
 - Deno (1.41+ recommended)
 
-## Conventions (What gets picked up)
+## Conventions
 
-A line is collected when it contains a supported tag followed by a colon and some text:
-
-- `// TODO: message here`
-- `# BUG: message here`
-
-Only the tags `TODO` and `BUG` are supported. `FIXME` and other tags are intentionally ignored.
-
-### Priority Markers
-
-Use a single `!` before the colon to mark high priority:
-- `TODO!:` or `BUG!:` — High priority
-- `TODO:` or `BUG:` — Normal priority
-
-### Metadata Extraction (NEW!)
-
-Extract rich metadata from your issues:
-- **Owner**: `TODO: @username: message` - Assign to a person
-- **Date**: `TODO: [2025-01-15]: message` - Add due dates
-- **Category**: `TODO: [auth]: message` - Group by module/feature
-- **Issue ID**: `TODO: (#42): message` or `BUG: (REF-123): message` - Link to tickets
-
-Combine multiple metadata: `TODO!!: @alice: [2025-01-10] Deploy hotfix`
-
-### Default Tags
-
-- `TODO, BUG`
+- Tags: only `TODO` and `BUG`.
+- Priority: tight `!` after the tag means high (e.g., `TODO!:` / `BUG!:`). A single space is
+  allowed before the colon (e.g., `BUG! : message`).
+- Colon: immediate or one space before it (e.g., `TODO:` or `TODO :`).
+- Comments scanned (configurable): `// …`, `/* … */`, `# …`, `<!-- … -->`.
+- Markdown: scanned with a tiny heuristic — fenced code is ignored and inline backticks are
+  stripped before matching.
 
 ## Outputs
 
@@ -71,63 +52,31 @@ JSON outputs are also generated alongside the text snapshots for tooling/CI:
 
 - `.git-bin/issues.json` and `.git-bin/bugs.json` — array of entries: `{ ts, file, line, tag, message, priority, owner?, date?, category?, id? }`.
 
-## HTML Dashboard (Static)
+## Dashboards
 
-Generate a responsive, zero-dependency HTML page that visualizes all collected issues with advanced
-filtering, sorting, and organization.
+- Active: `.git-bin/issues.html` — search, tag filters, sort (priority/file/line/tag/time), group by
+  directory, keyboard shortcuts (`/`, `g`, `Esc`).
+- History: `.git-bin/history.html` — journal-backed view with search, type/status filters,
+  high-only toggle, and sort (created/completed/priority/type).
 
-- Output file: `.git-bin/issues.html`
-- **Enhanced Features (NEW!):**
-  - **Real-time search** - Filter issues by message or file content
-  - **Priority visualization** - Color-coded priority indicators
-  - **Statistics dashboard** - Issue counts by type, priority, and status
-  - **Group by directory** - Collapsible file groups for better organization
-  - **Metadata display** - Shows owner, date, category, and issue IDs
-  - **Keyboard shortcuts** - `/` for search, `g` for grouping, `Esc` to clear
-  - **Smart sorting** - Sort by priority, file, line, tag, or timestamp
-  - **Responsive design** - Mobile-friendly with touch support
-
-Usage:
+Quick usage:
 
 ```
-# Build the HTML from .issues and .bugs
-deno task issues:web
-
-# Build (if needed) and open (cross-platform)
-deno task issues:web:open
-
-# Live mode: rescan and rebuild on any change
-deno task issues:watch
+deno task issues:scan        # write .issues
+deno task issues:scan:src    # write .bugs
+deno task issues:web         # build issues.html
+deno task issues:web:open    # open issues.html (cross‑platform)
+deno task issues:watch       # live scan + rebuild
+deno task issues:sync        # sync snapshots to SQLite journal (todos.db)
+deno task issues:history     # build history.html
+deno task issues:history:open
 ```
-
-Notes:
-
-- `issues:web:open` is cross‑platform and will generate the HTML if missing.
-- If the page appears empty, run a scan first to generate `.git-bin/.issues` and `.git-bin/.bugs`.
 
 ## Tasks (deno.json)
 
-Convenience tasks are provided:
-
-- Full repo scan → `.git-bin/.issues`
-  - `deno task issues:scan`
-- Only `src/`, only TODO/BUG → `.git-bin/.bugs`
-  - `deno task issues:scan:src`
-- Generate HTML dashboard → `.git-bin/issues.html`
-  - `deno task issues:web`
-- Build + open dashboard (cross‑platform)
-  - `deno task issues:web:open`
-- Install a post‑commit hook to update snapshots + HTML automatically
-  - `deno task issues:hook:install`
-- Watch and auto‑refresh snapshots + HTML on change
-  - `deno task issues:watch`
-
-If you prefer manual invocation:
-
-```
-.git-bin/git-issues.ts                # defaults to .git-bin/.issues
-.git-bin/git-issues.ts --path src --out .git-bin/.bugs
-```
+- `issues:scan`, `issues:scan:src`, `issues:web`, `issues:web:open`, `issues:watch`
+- `issues:sync`, `issues:history`, `issues:history:open`
+- `issues:hook:install` — installs a post‑commit hook to refresh everything
 
 ## Git Hook
 
@@ -139,6 +88,8 @@ snapshots and the HTML dashboard automatically:
 .git-bin/git-issues.ts --out .git-bin/.issues
 .git-bin/git-issues.ts --path src --out .git-bin/.bugs
 .git-bin/issues-web.ts
+deno run -A .git-bin/issues-sync.ts
+deno run -A .git-bin/history-web.ts
 ```
 
 Notes:
@@ -147,19 +98,15 @@ Notes:
 - You can open the HTML afterwards with `deno task issues:web:open` (macOS) or by opening
   `.git-bin/issues.html` directly.
 
-## Configuration File
-
-Create a `.gitodos` file in your repository root to configure defaults:
+## .gitodos (config)
 
 ```ini
-# .gitodos configuration file
-
 # Patterns to ignore (comma-separated)
-# Supports: directory/ for directories, *.ext for extensions
 ignore=vendor/,node_modules/,dist/,.git/,*.min.js
 
-# Future: Number of context lines around issues
-# context_lines=0
+# Comment styles to scan (comma-separated):
+# slash (//), block (/* */), hash (#), html (<!-- -->)
+comments=slash,block,hash,html
 ```
 
 ## Customization
@@ -173,11 +120,9 @@ You can add more tasks in `deno.json` for frequently used combinations.
 
 ## Tips
 
-- Consider adding `.git-bin/.issues` and `.git-bin/.bugs` to your PRs so reviewers see the current
-  snapshot of inline issues.
-- The scanner includes untracked (non‑ignored) files so you get immediate feedback while iterating.
-- If a line should be ignored, simply remove the colon after the tag (e.g.,
-  `// TODO remove this later` will not match).
+- Keep comments short and actionable; one TODO/BUG per line is ideal.
+- Remove the colon if you want a line ignored: `// TODO later` (no match).
+- Use the history page to track completion trends.
 
 ## Known limitations
 
@@ -186,20 +131,19 @@ You can add more tasks in `deno.json` for frequently used combinations.
 - The per‑line `timestamp` reflects when the snapshot was taken, not when a comment was added.
 - Only files listed by `git ls-files --cached --others --exclude-standard` are scanned; ignored
   files (per `.gitignore`) are skipped by design.
-- Minimal, non‑regex parser by design: only `TODO:` and `BUG:` are recognized; a single `!` before
-  the colon marks high priority (e.g., `TODO!:`). Metadata (`@owner`, `[date|category]`, `(#id)`/`(ABC-123)`) is parsed only at the start of the message if present.
+- Minimal parser: only `TODO:` and `BUG:`. A tight `!` after the tag marks high (e.g., `TODO!:` / `BUG!:`). Colon may have one space before it. Metadata (`@owner`, `[date|category]`, `(#id)`/`(ABC-123)`) is parsed only at the start of the message if present.
 
 ## Recent Enhancements
 
-✅ **Priority** - High (`!`) and Normal
-✅ **Metadata extraction** - Owner, dates, categories, issue IDs
-✅ **Configuration file** - `.gitodos` for ignore patterns
-✅ **Enhanced dashboard** - Search, stats, grouping, keyboard shortcuts
-✅ **Smart sorting** - Priority-first ordering
-✅ **JSON outputs** - `.git-bin/issues.json` and `.git-bin/bugs.json`
-✅ **Watch mode** - `deno task issues:watch` regenerates snapshots + HTML on change
-✅ **Cross‑platform open** - `deno task issues:web:open` works on macOS/Linux/Windows
-✅ **Minimal parser** - Replaced regex with a tiny hand‑rolled parser
+✅ **Tight priority marker** — `TODO!:` / `BUG!:` (no space before `!`)
+✅ **Colon flexibility** — allow one space before the colon (`TODO :`)
+✅ **Comment toggles** — `.gitodos` controls `//`, `/* */`, `#`, `<!-- -->`
+✅ **Markdown heuristic** — ignore fenced code; strip inline backticks
+✅ **JSON snapshots** — `.git-bin/issues.json`, `.git-bin/bugs.json`
+✅ **Journal + history** — SQLite sync and `history.html`
+✅ **Dashboards** — search/filters/sort; group-by for active view
+✅ **Watch + open** — live rebuild, cross‑platform opener
+✅ **Minimal, non‑regex parser** — small, predictable scanner
 
 ## Roadmap ideas
 
