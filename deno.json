@@ -10,9 +10,9 @@
     "issues:web": "deno run --allow-read --allow-write .git-bin/issues-web.ts",
     "issues:web:open": "deno run --allow-read --allow-run .git-bin/open-html.ts",
     "issues:watch": "deno run -A --watch=. .git-bin/issues-watch.ts",
-    "db:sync": "deno run -A .git-bin/issues-sync.ts",
-    "site:history": "deno run -A .git-bin/history-web.ts",
-    "site:history:open": "deno run --allow-read --allow-run .git-bin/open-history.ts",
+    "issues:sync": "deno run -A .git-bin/issues-sync.ts",
+    "issues:history": "deno run -A .git-bin/history-web.ts",
+    "issues:history:open": "deno run --allow-read --allow-run .git-bin/open-history.ts",
     "release": "deno run -A .git-bin/release.ts"
   },
   "imports": {

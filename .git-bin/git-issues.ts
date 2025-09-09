@@ -238,6 +238,53 @@ const parseLine = (line: string, file: string, ln: number, tags: readonly string
   return null;
 };
 
+// Find comment slice for common languages. Maintains simple block-comment state across lines.
+type BlockState = { inBlock: boolean };
+const commentSlice = (line: string, state: BlockState): string | null => {
+  const s = line;
+  if (state.inBlock) {
+    const end = s.indexOf("*/");
+    if (end >= 0) {
+      state.inBlock = false;
+      return s.slice(0, end);
+    }
+    return s; // Entire line is inside block comment
+  }
+
+  // Line comments: // (avoid http://) and # at start or after whitespace
+  const dbl = s.indexOf("//");
+  let dblValid = -1;
+  if (dbl >= 0) {
+    // treat as comment if not part of "://"
+    if (!(dbl > 0 && s[dbl - 1] === ":")) dblValid = dbl;
+  }
+
+  // Block comment start
+  const blk = s.indexOf("/*");
+  const hash = (() => {
+    const idx = s.indexOf("#");
+    if (idx < 0) return -1;
+    // valid if start or preceded by whitespace
+    const prev = idx === 0 ? "" : s[idx - 1] ?? "";
+    return (idx === 0 || prev === " " || prev === "\t") ? idx : -1;
+  })();
+
+  let cut = Number.MAX_SAFE_INTEGER;
+  let kind: "//" | "/*" | "#" | null = null;
+  if (dblValid >= 0 && dblValid < cut) { cut = dblValid; kind = "//"; }
+  if (blk >= 0 && blk < cut) { cut = blk; kind = "/*"; }
+  if (hash >= 0 && hash < cut) { cut = hash; kind = "#"; }
+  if (kind === null) return null;
+
+  if (kind === "//") return s.slice(cut + 2);
+  if (kind === "#") return s.slice(cut + 1);
+  // block comment
+  const end = s.indexOf("*/", cut + 2);
+  if (end >= 0) return s.slice(cut + 2, end);
+  state.inBlock = true;
+  return s.slice(cut + 2);
+};
+
 /* ---------- git + grep ---------- */
 function shouldIgnore(file: string, ignorePatterns: string[]): boolean {
   for (const pattern of ignorePatterns) {
@@ -285,8 +332,11 @@ async function* grepFiles(root: string, tags: readonly string[], ignorePatterns:
 
   for (const file of files) {
     const content = await Deno.readTextFile(`${root}/${file}`);
+    const state: BlockState = { inBlock: false };
     for (const [idx, line] of content.split("\n").entries()) {
-      const issue = parseLine(line, file, idx + 1, tags);
+      const c = commentSlice(line, state);
+      if (!c) continue;
+      const issue = parseLine(c, file, idx + 1, tags);
       if (issue) yield issue;
     }
   }

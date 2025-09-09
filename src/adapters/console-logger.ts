@@ -7,4 +7,5 @@ export const createConsoleLogger = (): Logger => ({
   debug: (message, data) => console.debug(`[DEBUG] ${message}`, data ?? ""),
 });
 
+// BUG: Add sinks/transports (e.g., to file, HTTP, OpenTelemetry) with backpressure handling.
 
