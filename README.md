@@ -1,3 +1,40 @@
+# Inline Code Issues Dashboard
+
+Minimal, dependency‑free tooling to scan inline TODO/BUG/FIXME comments and generate a local HTML
+dashboard.
+
+- Scanner: `.git-bin/git-issues.ts` (writes `.git-bin/.issues` and subset `.git-bin/.bugs`)
+- Dashboard: `.git-bin/issues-web.ts` → `.git-bin/issues.html`
+- Optional: post‑commit hook to auto‑refresh on every commit
+
+## Requirements
+
+- Deno 2.x
+- Git on PATH
+
+## Quick start
+
+```
+# 1) Generate snapshots
+deno task issues:scan        # → .git-bin/.issues (full repo)
+
+# 2) Build and open the HTML dashboard
+deno task issues:web         # builds (if needed) and opens .git-bin/issues.html
+
+# Optional: install a post‑commit hook to auto‑refresh after every commit
+deno task issues:hook:install
+```
+
+## Outputs
+
+- `.git-bin/.issues` — full snapshot (timestamp, path:line, tag, message)
+- `.git-bin/.bugs` — subset snapshot (currently scanning src/)
+- `.git-bin/issues.html` — static, responsive dashboard with filtering and sorting
+
+Tip: If the page looks empty, run the scan tasks first, then rebuild the HTML.
+
+---
+
 # Inline Issue & Bug Tracker (.git-bin/git-issues.ts)
 
 This repository includes a tiny, dependency‑free scanner that collects inline code issues (e.g.,
@@ -18,12 +55,12 @@ recognizable tags (e.g., `// TODO: …`, `# BUG: …`).
 ## Conventions
 
 - Tags: only `TODO` and `BUG`.
-- Priority: tight `!` after the tag means high (e.g., `TODO!:` / `BUG!:`). A single space is
-  allowed before the colon (e.g., `BUG! : message`).
+- Priority: tight `!` after the tag means high (e.g., `TODO!:` / `BUG!:`). A single space is allowed
+  before the colon (e.g., `BUG! : message`).
 - Colon: immediate or one space before it (e.g., `TODO:` or `TODO :`).
 - Comments scanned (configurable): `// …`, `/* … */`, `# …`, `<!-- … -->`.
-- Markdown: scanned with a tiny heuristic — fenced code is ignored and inline backticks are
-  stripped before matching.
+- Markdown: scanned with a tiny heuristic — fenced code is ignored and inline backticks are stripped
+  before matching.
 
 ## Outputs
 
@@ -50,14 +87,15 @@ Example excerpt:
 
 JSON outputs are also generated alongside the text snapshots for tooling/CI:
 
-- `.git-bin/issues.json` and `.git-bin/bugs.json` — array of entries: `{ ts, file, line, tag, message, priority, owner?, date?, category?, id? }`.
+- `.git-bin/issues.json` and `.git-bin/bugs.json` — array of entries:
+  `{ ts, file, line, tag, message, priority, owner?, date?, category?, id? }`.
 
 ## Dashboards
 
 - Active: `.git-bin/issues.html` — search, tag filters, sort (priority/file/line/tag/time), group by
   directory, keyboard shortcuts (`/`, `g`, `Esc`).
-- History: `.git-bin/history.html` — journal-backed view with search, type/status filters,
-  high-only toggle, and sort (created/completed/priority/type).
+- History: `.git-bin/history.html` — journal-backed view with search, type/status filters, high-only
+  toggle, and sort (created/completed/priority/type).
 
 Quick usage:
 
@@ -66,16 +104,13 @@ deno task issues:scan        # write .issues
 deno task issues:scan:src    # write .bugs
 deno task issues:web         # build issues.html
 deno task issues:web:open    # open issues.html (cross‑platform)
-deno task issues:watch       # live scan + rebuild
-deno task issues:sync        # sync snapshots to SQLite journal (todos.db)
-deno task issues:history     # build history.html
-deno task issues:history:open
+deno task issues:history     # build and open history.html
 ```
 
 ## Tasks (deno.json)
 
-- `issues:scan`, `issues:scan:src`, `issues:web`, `issues:web:open`, `issues:watch`
-- `issues:sync`, `issues:history`, `issues:history:open`
+- `issues:scan`, `issues:scan:src`, `issues:web`, `issues:web:open`
+- `issues:history`
 - `issues:hook:install` — installs a post‑commit hook to refresh everything
 
 ## Git Hook
@@ -88,7 +123,6 @@ snapshots and the HTML dashboard automatically:
 .git-bin/git-issues.ts --out .git-bin/.issues
 .git-bin/git-issues.ts --path src --out .git-bin/.bugs
 .git-bin/issues-web.ts
-deno run -A .git-bin/issues-sync.ts
 deno run -A .git-bin/history-web.ts
 ```
 
@@ -131,19 +165,19 @@ You can add more tasks in `deno.json` for frequently used combinations.
 - The per‑line `timestamp` reflects when the snapshot was taken, not when a comment was added.
 - Only files listed by `git ls-files --cached --others --exclude-standard` are scanned; ignored
   files (per `.gitignore`) are skipped by design.
-- Minimal parser: only `TODO:` and `BUG:`. A tight `!` after the tag marks high (e.g., `TODO!:` / `BUG!:`). Colon may have one space before it. Metadata (`@owner`, `[date|category]`, `(#id)`/`(ABC-123)`) is parsed only at the start of the message if present.
+- Minimal parser: only `TODO:` and `BUG:`. A tight `!` after the tag marks high (e.g., `TODO!:` /
+  `BUG!:`). Colon may have one space before it. Metadata (`@owner`, `[date|category]`,
+  `(#id)`/`(ABC-123)`) is parsed only at the start of the message if present.
 
 ## Recent Enhancements
 
-✅ **Tight priority marker** — `TODO!:` / `BUG!:` (no space before `!`)
-✅ **Colon flexibility** — allow one space before the colon (`TODO :`)
-✅ **Comment toggles** — `.gitodos` controls `//`, `/* */`, `#`, `<!-- -->`
-✅ **Markdown heuristic** — ignore fenced code; strip inline backticks
-✅ **JSON snapshots** — `.git-bin/issues.json`, `.git-bin/bugs.json`
-✅ **Journal + history** — SQLite sync and `history.html`
-✅ **Dashboards** — search/filters/sort; group-by for active view
-✅ **Watch + open** — live rebuild, cross‑platform opener
-✅ **Minimal, non‑regex parser** — small, predictable scanner
+✅ **Tight priority marker** — `TODO!:` / `BUG!:` (no space before `!`) ✅ **Colon flexibility** —
+allow one space before the colon (`TODO :`) ✅ **Comment toggles** — `.gitodos` controls `//`,
+`/* */`, `#`, `<!-- -->` ✅ **Markdown heuristic** — ignore fenced code; strip inline backticks ✅
+**JSON snapshots** — `.git-bin/issues.json`, `.git-bin/bugs.json` ✅ **Journal + history** — SQLite
+sync and `history.html` ✅ **Dashboards** — search/filters/sort; group-by for active view ✅
+**Watch + open** — live rebuild, cross‑platform opener ✅ **Minimal, non‑regex parser** — small,
+predictable scanner
 
 ## Roadmap ideas
 
